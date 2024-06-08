@@ -88,6 +88,11 @@ def save_repo_to_text(path='.') -> None:
         file.write(f'Project: {project_name}\n\n')
         file.write('Directory Structure:\n')
         file.write('```\n.\n')
+
+        # Insert .gitignore if it exists
+        if os.path.exists(os.path.join(path, '.gitignore')):
+            file.write('├── .gitignore\n')
+        
         file.write(tree_structure + '\n' + '```\n')
         logging.debug('Tree structure written to file')
 
