@@ -10,47 +10,14 @@
 - Copies the generated text representation to the clipboard for easy sharing.
 - Easy to install and use via `pip` and Homebrew.
 
-<!-- ## Installation
+## Installation
 
 ### Using pip
 
 To install `repo-to-text` via pip, run the following command:
 
 ```bash
-pip install git+https://github.com/yourusername/repo-to-text.git
-```
-
-### Using Homebrew
-
-To install `repo-to-text` via Homebrew, run the following command:
-
-```bash
-brew install yourusername/repo-to-text
-``` -->
-
-### Install Locally
-
-To install `repo-to-text` locally for development, follow these steps:
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/kirill-markin/repo-to-text
-    cd repo-to-text
-    ```
-
-2. Install the package locally:
-
-    ```bash
-    pip install -e .
-    ```
-
-### Installing Dependencies
-
-To install all the required dependencies, run the following command:
-
-```bash
-pip install -r requirements.txt
+pip install repo-to-text
 ```
 
 ## Usage
@@ -85,7 +52,32 @@ You can customize the behavior of `repo-to-text` with the following options:
 
 The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](examples/example_repo_snapshot_2024-06-08-10-30-33-UTC.txt).
 
-## Running Tests
+## Install Locally
+
+To install `repo-to-text` locally for development, follow these steps:
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/kirill-markin/repo-to-text
+    cd repo-to-text
+    ```
+
+2. Install the package locally:
+
+    ```bash
+    pip install -e .
+    ```
+
+### Installing Dependencies
+
+To install all the required dependencies, run the following command:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Running Tests
 
 To run the tests, use the following command:
 
