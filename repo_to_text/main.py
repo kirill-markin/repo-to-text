@@ -84,7 +84,11 @@ def save_repo_to_text(path='.') -> None:
     
     output_file = 'repo_structure.txt'
     with open(output_file, 'w') as file:
-        file.write(tree_structure + '\n')
+        project_name = os.path.basename(os.path.abspath(path))
+        file.write(f'Project: {project_name}\n\n')
+        file.write('Directory Structure:\n')
+        file.write('```\n.\n')
+        file.write(tree_structure + '\n' + '```\n')
         logging.debug('Tree structure written to file')
 
         for root, _, files in os.walk(path):
@@ -97,7 +101,7 @@ def save_repo_to_text(path='.') -> None:
 
                 relative_path = relative_path.replace('./', '', 1)
                 
-                file.write(f'\n{relative_path}\n')
+                file.write(f'\nContents of {relative_path}:\n')
                 file.write('```\n')
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
