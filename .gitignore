@@ -162,6 +162,9 @@ cython_debug/
 #.idea/
 
 
+# MacOS specific files
+.DS_Store
+
 # Ignore egg-info directory
 repo_to_text.egg-info/
 
