@@ -5,6 +5,7 @@ Directory Structure:
 .
 ├── .gitignore
 ├── LICENSE
+├── MANIFEST.in
 ├── README.md
 ├── repo_to_text
 │   ├── repo_to_text/__init__.py
@@ -52,6 +53,14 @@ pyperclip==1.8.2
 
 ```
 
+Contents of MANIFEST.in:
+```
+include README.md
+include LICENSE
+include requirements.txt
+
+```
+
 Contents of README.md:
 ```
 # repo-to-text
@@ -66,47 +75,14 @@ Contents of README.md:
 - Copies the generated text representation to the clipboard for easy sharing.
 - Easy to install and use via `pip` and Homebrew.
 
-<!-- ## Installation
+## Installation
 
 ### Using pip
 
 To install `repo-to-text` via pip, run the following command:
 
 ```bash
-pip install git+https://github.com/yourusername/repo-to-text.git
-```
-
-### Using Homebrew
-
-To install `repo-to-text` via Homebrew, run the following command:
-
-```bash
-brew install yourusername/repo-to-text
-``` -->
-
-### Install Locally
-
-To install `repo-to-text` locally for development, follow these steps:
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/kirill-markin/repo-to-text
-    cd repo-to-text
-    ```
-
-2. Install the package locally:
-
-    ```bash
-    pip install -e .
-    ```
-
-### Installing Dependencies
-
-To install all the required dependencies, run the following command:
-
-```bash
-pip install -r requirements.txt
+pip install repo-to-text
 ```
 
 ## Usage
@@ -139,9 +115,34 @@ You can customize the behavior of `repo-to-text` with the following options:
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](examples/example_repo_snapshot_2024-06-08-09-56-58-UTC.txt).
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/db89dbfc9cfa3a8eb29dd14763bc477619a3cea4/examples/example_repo_snapshot_2024-06-08-10-30-33-UTC.txt).
 
-## Running Tests
+## Install Locally
+
+To install `repo-to-text` locally for development, follow these steps:
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/kirill-markin/repo-to-text
+    cd repo-to-text
+    ```
+
+2. Install the package locally:
+
+    ```bash
+    pip install -e .
+    ```
+
+### Installing Dependencies
+
+To install all the required dependencies, run the following command:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Running Tests
 
 To run the tests, use the following command:
 
@@ -163,7 +164,7 @@ Contributions are welcome! If you have any suggestions or find a bug, please ope
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/kirill-markin/repo-to-text/blob/main/LICENSE) file for details.
 
 ## Contact
 
@@ -180,7 +181,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='repo-to-text',
-    version='0.1',
+    version='0.1.1',
     author='Kirill Markin',
     author_email='markinkirill@gmail.com',
     description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks.',
@@ -190,6 +191,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=required,
+    include_package_data=True,
     entry_points={
         'console_scripts': [
             'repo-to-text=repo_to_text.main:main',
@@ -250,7 +252,6 @@ Contents of repo_to_text/__init__.py:
 ```
 __author__ = 'Kirill Markin'
 __email__ = 'markinkirill@gmail.com'
-__version__ = '0.1'
 
 ```
 

@@ -50,7 +50,7 @@ You can customize the behavior of `repo-to-text` with the following options:
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/db89dbfc9cfa3a8eb29dd14763bc477619a3cea4/examples/example_repo_snapshot_2024-06-08-10-30-33-UTC.txt).
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo_snapshot_2024-06-08-11-35-28-UTC.txt).
 
 ## Install Locally
 
