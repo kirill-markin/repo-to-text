@@ -2,7 +2,9 @@
 
 `repo-to-text` is an open-source project that converts the structure and contents of a directory (repository) into a single text file. By executing a simple command in the terminal, this tool generates a text representation of the directory, including the output of the `tree` command and the contents of each file, formatted for easy reading and sharing. This can be very useful for development and debugging with LLM.
 
-## Example Output
+## Example of Repository to Text Conversion
+
+![Example Output](https://raw.githubusercontent.com/kirill-markin/repo-to-text/main/examples/screenshot-demo.jpg)
 
 The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo_snapshot_2024-06-08-11-35-28-UTC.txt).
 
