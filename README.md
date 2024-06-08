@@ -7,6 +7,7 @@
 - Generates a text representation of a directory's structure.
 - Includes the output of the `tree` command.
 - Saves the contents of each file, encapsulated in markdown code blocks.
+- Copies the generated text representation to the clipboard for easy sharing.
 - Easy to install and use via `pip` and Homebrew.
 
 ## Installation
@@ -32,12 +33,14 @@ brew install yourusername/repo-to-text
 To install `repo-to-text` locally for development, follow these steps:
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/repo-to-text.git
    cd repo-to-text
    ```
 
 2. Install the package locally:
+
    ```bash
    pip install -e .
    ```
@@ -50,7 +53,7 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
-This will create a file named `repo_structure.txt` in the current directory with the text representation of the repository.
+This will create a file named repo_snapshot.txt in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
 ## Enabling Debug Logging
 

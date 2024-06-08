@@ -4,6 +4,7 @@ import pathspec
 import logging
 import argparse
 from datetime import datetime
+import pyperclip
 
 def setup_logging(debug=False):
     logging_level = logging.DEBUG if debug else logging.INFO
@@ -80,7 +81,7 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
     logging.debug('Empty directory removal complete')
     return '\n'.join(final_lines)
 
-def save_repo_to_text(path='.') -> None:
+def save_repo_to_text(path='.') -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
     gitignore_spec = load_gitignore(path)
     tree_structure = get_tree_structure(path, gitignore_spec)
@@ -123,6 +124,16 @@ def save_repo_to_text(path='.') -> None:
                     file.write('[Could not decode file contents]\n')
                 file.write('\n```\n')
         logging.debug('Repository contents written to file')
+    
+    # Read the contents of the generated file
+    with open(output_file, 'r') as file:
+        repo_text = file.read()
+    
+    # Copy the contents to the clipboard
+    pyperclip.copy(repo_text)
+    logging.debug('Repository structure and contents copied to clipboard')
+    
+    return output_file
 
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
