@@ -34,16 +34,16 @@ To install `repo-to-text` locally for development, follow these steps:
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/yourusername/repo-to-text.git
-   cd repo-to-text
-   ```
+    ```bash
+    git clone https://github.com/yourusername/repo-to-text.git
+    cd repo-to-text
+    ```
 
 2. Install the package locally:
 
-   ```bash
-   pip install -e .
-   ```
+    ```bash
+    pip install -e .
+    ```
 
 ## Usage
 
@@ -53,11 +53,11 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
-This will create a file named repo_snapshot.txt in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
+This will create a file named `repo_snapshot.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
 ## Enabling Debug Logging
 
-By default, repo-to-text runs with INFO logging level. To enable DEBUG logging, use the --debug flag:
+By default, `repo-to-text` runs with `INFO` logging level. To enable `DEBUG` logging, use the `--debug` flag:
 
 ```bash
 repo-to-text --debug
@@ -65,31 +65,7 @@ repo-to-text --debug
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For example:
-
-```
-.
-├── README.md
-├── repo_to_text
-│   ├── __init__.py
-│   └── main.py
-├── requirements.txt
-├── setup.py
-└── tests
-    ├── __init__.py
-    └── test_main.py
-
-README.md
-```
-```
-# Contents of README.md
-...
-```
-```
-# Contents of repo_to_text/__init__.py
-...
-```
-...
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output](examples/example_repo_snapshot_2024-06-08-09-56-58-UTC.txt).
 
 ## Running Tests
 
