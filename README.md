@@ -61,15 +61,25 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
-This will create a file named `repo_snapshot.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
+This will create a file named `repo_snapshot_YYYY-MM-DD-HH-MM-SS-UTC.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
-## Enabling Debug Logging
+### Options
 
-By default, `repo-to-text` runs with `INFO` logging level. To enable `DEBUG` logging, use the `--debug` flag:
+You can customize the behavior of `repo-to-text` with the following options:
 
-```bash
-repo-to-text --debug
-```
+- `--output-dir <path>`: Specify an output directory where the generated text file will be saved. For example:
+
+  ```bash
+  repo-to-text --output-dir /path/to/output
+  ```
+  
+  This will save the file in the specified output directory instead of the current directory.
+
+- `--debug`: Enable DEBUG logging. By default, `repo-to-text` runs with INFO logging level. To enable DEBUG logging, use the `--debug` flag:
+
+  ```bash
+  repo-to-text --debug
+  ```
 
 ## Example Output
 
@@ -85,7 +95,7 @@ pytest
 
 ## Uninstall
 
-To uninstall package, run the following command from the directory where the repository is located:
+To uninstall the package, run the following command from the directory where the repository is located:
 
 ```bash
 pip uninstall repo-to-text
