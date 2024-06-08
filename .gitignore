@@ -166,4 +166,4 @@ cython_debug/
 repo_to_text.egg-info/
 
 # Ignore generated repo_structure.txt file
-# repo_structure.txt
+repo_structure.txt
