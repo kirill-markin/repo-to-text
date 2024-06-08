@@ -3,19 +3,21 @@ import subprocess
 import pathspec
 
 def get_tree_structure(path='.', gitignore_spec=None) -> str:
-    # Run the tree command and get its output
-    result = subprocess.run(['tree', path], stdout=subprocess.PIPE)
+    result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
     tree_output = result.stdout.decode('utf-8')
 
     if not gitignore_spec:
         return tree_output
 
-    # Filter the tree output to exclude files in .gitignore (excluding .gitignore itself)
     filtered_lines = []
     for line in tree_output.splitlines():
-        parts = line.split()
-        if not any(gitignore_spec.match_file(os.path.join(path, part)) for part in parts if part != '.gitignore'):
-            filtered_lines.append(line)
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            relative_path = os.path.relpath(full_path, path)
+            if not gitignore_spec.match_file(relative_path) and not is_ignored_path(relative_path):
+                filtered_lines.append(line.replace('./', '', 1))
+    
     return '\n'.join(filtered_lines)
 
 def load_gitignore(path='.'):
@@ -25,24 +27,42 @@ def load_gitignore(path='.'):
             return pathspec.PathSpec.from_lines('gitwildmatch', f)
     return None
 
-def is_ignored_file(file_path: str) -> bool:
-    # Check if the file is part of .git or should be ignored according to .gitignore rules
-    return '.git' in file_path.split(os.sep) or file_path.endswith('.gitignore')
+def is_ignored_path(file_path: str) -> bool:
+    ignored_dirs = ['.git']
+    return any(ignored in file_path for ignored in ignored_dirs)
+
+def remove_empty_dirs(tree_output: str) -> str:
+    lines = tree_output.splitlines()
+    non_empty_dirs = set()
+    filtered_lines = []
+
+    for line in reversed(lines):
+        if line.strip().endswith('/'):
+            if any(line.strip() in dir_line for dir_line in non_empty_dirs):
+                filtered_lines.append(line)
+        else:
+            non_empty_dirs.add(line)
+            filtered_lines.append(line)
+    
+    return '\n'.join(reversed(filtered_lines))
 
 def save_repo_to_text(path='.') -> None:
     gitignore_spec = load_gitignore(path)
-    tree_structure: str = get_tree_structure(path, gitignore_spec)
+    tree_structure = get_tree_structure(path, gitignore_spec)
+    tree_structure = remove_empty_dirs(tree_structure)
+    
     with open('repo_structure.txt', 'w') as file:
         file.write(tree_structure + '\n')
 
         for root, _, files in os.walk(path):
             for filename in files:
-                file_path: str = os.path.join(root, filename)
-                relative_path: str = os.path.relpath(file_path, path)
+                file_path = os.path.join(root, filename)
+                relative_path = os.path.relpath(file_path, path)
                 
-                # Check if the file should be ignored
-                if is_ignored_file(file_path) or (gitignore_spec and gitignore_spec.match_file(file_path)):
+                if is_ignored_path(file_path) or (gitignore_spec and gitignore_spec.match_file(relative_path)):
                     continue
+
+                relative_path = relative_path.replace('./', '', 1)
                 
                 file.write(f'\n{relative_path}\n')
                 file.write('```\n')
