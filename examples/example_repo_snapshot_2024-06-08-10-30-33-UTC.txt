@@ -66,7 +66,7 @@ Contents of README.md:
 - Copies the generated text representation to the clipboard for easy sharing.
 - Easy to install and use via `pip` and Homebrew.
 
-## Installation
+<!-- ## Installation
 
 ### Using pip
 
@@ -82,7 +82,7 @@ To install `repo-to-text` via Homebrew, run the following command:
 
 ```bash
 brew install yourusername/repo-to-text
-```
+``` -->
 
 ### Install Locally
 
@@ -90,16 +90,24 @@ To install `repo-to-text` locally for development, follow these steps:
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/yourusername/repo-to-text.git
-   cd repo-to-text
-   ```
+    ```bash
+    git clone https://github.com/kirill-markin/repo-to-text
+    cd repo-to-text
+    ```
 
 2. Install the package locally:
 
-   ```bash
-   pip install -e .
-   ```
+    ```bash
+    pip install -e .
+    ```
+
+### Installing Dependencies
+
+To install all the required dependencies, run the following command:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
@@ -109,43 +117,29 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
-This will create a file named repo_snapshot.txt in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
+This will create a file named `repo_snapshot_YYYY-MM-DD-HH-MM-SS-UTC.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
-## Enabling Debug Logging
+### Options
 
-By default, repo-to-text runs with INFO logging level. To enable DEBUG logging, use the --debug flag:
+You can customize the behavior of `repo-to-text` with the following options:
 
-```bash
-repo-to-text --debug
-```
+- `--output-dir <path>`: Specify an output directory where the generated text file will be saved. For example:
+
+  ```bash
+  repo-to-text --output-dir /path/to/output
+  ```
+  
+  This will save the file in the specified output directory instead of the current directory.
+
+- `--debug`: Enable DEBUG logging. By default, `repo-to-text` runs with INFO logging level. To enable DEBUG logging, use the `--debug` flag:
+
+  ```bash
+  repo-to-text --debug
+  ```
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For example:
-
-```
-.
-├── README.md
-├── repo_to_text
-│   ├── __init__.py
-│   └── main.py
-├── requirements.txt
-├── setup.py
-└── tests
-    ├── __init__.py
-    └── test_main.py
-
-README.md
-```
-```
-# Contents of README.md
-...
-```
-```
-# Contents of repo_to_text/__init__.py
-...
-```
-...
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](examples/example_repo_snapshot_2024-06-08-09-56-58-UTC.txt).
 
 ## Running Tests
 
@@ -155,15 +149,9 @@ To run the tests, use the following command:
 pytest
 ```
 
-Make sure you have `pytest` installed. If not, you can install it using:
+## Uninstall
 
-```bash
-pip install pytest
-```
-
-## Uninstall Locally
-
-To uninstall the locally installed package, run the following command from the directory where the repository is located:
+To uninstall the package, run the following command from the directory where the repository is located:
 
 ```bash
 pip uninstall repo-to-text
@@ -179,7 +167,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For any inquiries or feedback, please contact [yourname](mailto:youremail@example.com).
+This project is maintained by [Kirill Markin](https://github.com/kirill-markin). For any inquiries or feedback, please contact [markinkirill@gmail.com](mailto:markinkirill@gmail.com).
 
 ```
 
@@ -193,6 +181,13 @@ with open('requirements.txt') as f:
 setup(
     name='repo-to-text',
     version='0.1',
+    author='Kirill Markin',
+    author_email='markinkirill@gmail.com',
+    description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks.',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/kirill-markin/repo-to-text',
+    license='MIT',
     packages=find_packages(),
     install_requires=required,
     entry_points={
@@ -200,7 +195,14 @@ setup(
             'repo-to-text=repo_to_text.main:main',
         ],
     },
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ],
+    python_requires='>=3.6',
 )
+
 ```
 
 Contents of tests/__init__.py:
@@ -246,6 +248,9 @@ if __name__ == "__main__":
 
 Contents of repo_to_text/__init__.py:
 ```
+__author__ = 'Kirill Markin'
+__email__ = 'markinkirill@gmail.com'
+__version__ = '0.1'
 
 ```
 
