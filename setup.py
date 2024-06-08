@@ -5,10 +5,10 @@ with open('requirements.txt') as f:
 
 setup(
     name='repo-to-text',
-    version='0.1.3',
+    version='0.1.4',
     author='Kirill Markin',
     author_email='markinkirill@gmail.com',
-    description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks.',
+    description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks. It may be useful to chat with LLM about your code.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/kirill-markin/repo-to-text',
