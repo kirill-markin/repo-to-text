@@ -3,6 +3,7 @@ import subprocess
 import pathspec
 import logging
 import argparse
+from datetime import datetime
 
 def setup_logging(debug=False):
     logging_level = logging.DEBUG if debug else logging.INFO
@@ -42,7 +43,10 @@ def load_gitignore(path='.'):
 
 def is_ignored_path(file_path: str) -> bool:
     ignored_dirs = ['.git']
-    result = any(ignored in file_path for ignored in ignored_dirs)
+    ignored_files_prefix = ['repo_snapshot_']
+    is_ignored_dir = any(ignored in file_path for ignored in ignored_dirs)
+    is_ignored_file = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
+    result = is_ignored_dir or is_ignored_file
     if result:
         logging.debug(f'Path ignored: {file_path}')
     return result
@@ -82,7 +86,10 @@ def save_repo_to_text(path='.') -> None:
     tree_structure = get_tree_structure(path, gitignore_spec)
     tree_structure = remove_empty_dirs(tree_structure, path)
     
-    output_file = 'repo_structure.txt'
+    # Add timestamp to the output file name with a descriptive name
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
+    output_file = f'repo_snapshot_{timestamp}.txt'
+    
     with open(output_file, 'w') as file:
         project_name = os.path.basename(os.path.abspath(path))
         file.write(f'Project: {project_name}\n\n')
