@@ -45,6 +45,14 @@ To install `repo-to-text` locally for development, follow these steps:
     pip install -e .
     ```
 
+### Installing Dependencies
+
+To install all the required dependencies, run the following command:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 After installation, you can use the `repo-to-text` command in your terminal. Navigate to the directory you want to convert and run:
@@ -78,7 +86,7 @@ pytest
 Make sure you have `pytest` installed. If not, you can install it using:
 
 ```bash
-pip install pytest
+pip install -r requirements.txt
 ```
 
 ## Uninstall Locally
