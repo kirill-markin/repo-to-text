@@ -6,6 +6,13 @@ with open('requirements.txt') as f:
 setup(
     name='repo-to-text',
     version='0.1',
+    author='Kirill Markin',
+    author_email='markinkirill@gmail.com',
+    description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks.',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/kirill-markin/repo-to-text',
+    license='MIT',
     packages=find_packages(),
     install_requires=required,
     entry_points={
@@ -13,4 +20,10 @@ setup(
             'repo-to-text=repo_to_text.main:main',
         ],
     },
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ],
+    python_requires='>=3.6',
 )
