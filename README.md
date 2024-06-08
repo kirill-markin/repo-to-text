@@ -52,6 +52,14 @@ repo-to-text
 
 This will create a file named `repo_structure.txt` in the current directory with the text representation of the repository.
 
+## Enabling Debug Logging
+
+By default, repo-to-text runs with INFO logging level. To enable DEBUG logging, use the --debug flag:
+
+```bash
+repo-to-text --debug
+```
+
 ## Example Output
 
 The generated text file will include the directory structure and contents of each file. For example:

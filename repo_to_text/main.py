@@ -2,9 +2,11 @@ import os
 import subprocess
 import pathspec
 import logging
+import argparse
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+def setup_logging(debug=False):
+    logging_level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_tree_structure(path='.', gitignore_spec=None) -> str:
     logging.debug(f'Generating tree structure for path: {path}')
@@ -106,10 +108,15 @@ def save_repo_to_text(path='.') -> None:
                 file.write('\n```\n')
         logging.debug('Repository contents written to file')
 
-def main() -> None:
+def main():
+    parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    args = parser.parse_args()
+
+    setup_logging(debug=args.debug)
+    logging.debug('repo-to-text script started')
     save_repo_to_text()
+    logging.debug('repo-to-text script finished')
 
 if __name__ == '__main__':
-    logging.debug('repo-to-text script started')
     main()
-    logging.debug('repo-to-text script finished')
