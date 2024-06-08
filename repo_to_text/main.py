@@ -4,12 +4,13 @@ import pathspec
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_tree_structure(path='.', gitignore_spec=None) -> str:
     logging.debug(f'Generating tree structure for path: {path}')
     result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
     tree_output = result.stdout.decode('utf-8')
+    logging.debug(f'Tree output generated: {tree_output}')
 
     if not gitignore_spec:
         logging.debug('No .gitignore specification found')
@@ -44,30 +45,40 @@ def is_ignored_path(file_path: str) -> bool:
         logging.debug(f'Path ignored: {file_path}')
     return result
 
-def remove_empty_dirs(tree_output: str) -> str:
+def remove_empty_dirs(tree_output: str, path='.') -> str:
     logging.debug('Removing empty directories from tree output')
     lines = tree_output.splitlines()
     non_empty_dirs = set()
     filtered_lines = []
 
-    for line in reversed(lines):
-        logging.debug(f'Processing line: {line}')
-        if line.strip().endswith('/'):
-            logging.debug('Line is a directory')
-            if any(line.strip() in dir_line for dir_line in non_empty_dirs):
-                filtered_lines.append(line)
-        else:
-            non_empty_dirs.add(line)
+    for line in lines:
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            if os.path.isdir(full_path) and not any(os.path.isfile(os.path.join(full_path, f)) for f in os.listdir(full_path)):
+                logging.debug(f'Directory is empty and will be removed: {full_path}')
+                continue
+            non_empty_dirs.add(os.path.dirname(full_path))
             filtered_lines.append(line)
     
+    final_lines = []
+    for line in filtered_lines:
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            if os.path.isdir(full_path) and full_path not in non_empty_dirs:
+                logging.debug(f'Directory is empty and will be removed: {full_path}')
+                continue
+            final_lines.append(line)
+    
     logging.debug('Empty directory removal complete')
-    return '\n'.join(reversed(filtered_lines))
+    return '\n'.join(final_lines)
 
 def save_repo_to_text(path='.') -> None:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
     gitignore_spec = load_gitignore(path)
     tree_structure = get_tree_structure(path, gitignore_spec)
-    tree_structure = remove_empty_dirs(tree_structure)
+    tree_structure = remove_empty_dirs(tree_structure, path)
     
     output_file = 'repo_structure.txt'
     with open(output_file, 'w') as file:
