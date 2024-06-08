@@ -93,7 +93,7 @@ def save_repo_to_text(path='.') -> str:
     
     with open(output_file, 'w') as file:
         project_name = os.path.basename(os.path.abspath(path))
-        file.write(f'Project: {project_name}\n\n')
+        file.write(f'Directory: {project_name}\n\n')
         file.write('Directory Structure:\n')
         file.write('```\n.\n')
 
@@ -123,6 +123,8 @@ def save_repo_to_text(path='.') -> str:
                     logging.error(f'Could not decode file contents: {file_path}')
                     file.write('[Could not decode file contents]\n')
                 file.write('\n```\n')
+
+        file.write('\n')
         logging.debug('Repository contents written to file')
     
     # Read the contents of the generated file
