@@ -126,7 +126,7 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         file.write(f.read())
                 except UnicodeDecodeError:
-                    logging.error(f'Could not decode file contents: {file_path}')
+                    logging.debug(f'Could not decode file contents: {file_path}')
                     file.write('[Could not decode file contents]\n')
                 file.write('\n```\n')
 
