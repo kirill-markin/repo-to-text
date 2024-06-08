@@ -1,0 +1,414 @@
+Directory: repo-to-text
+
+Directory Structure:
+```
+.
+├── .gitignore
+├── LICENSE
+├── README.md
+├── repo_to_text
+│   ├── repo_to_text/__init__.py
+│   └── repo_to_text/main.py
+├── requirements.txt
+├── setup.py
+└── tests
+    ├── tests/__init__.py
+    └── tests/test_main.py
+```
+
+Contents of LICENSE:
+```
+MIT License
+
+Copyright (c) 2024 Kirill Markin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
+Contents of requirements.txt:
+```
+setuptools==70.0.0
+pathspec==0.12.1
+pytest==8.2.2
+argparse==1.4.0
+pyperclip==1.8.2
+
+```
+
+Contents of README.md:
+```
+# repo-to-text
+
+`repo-to-text` is an open-source project that converts the structure and contents of a directory (repository) into a single text file. By executing a simple command in the terminal, this tool generates a text representation of the directory, including the output of the `tree` command and the contents of each file, formatted for easy reading and sharing.
+
+## Features
+
+- Generates a text representation of a directory's structure.
+- Includes the output of the `tree` command.
+- Saves the contents of each file, encapsulated in markdown code blocks.
+- Copies the generated text representation to the clipboard for easy sharing.
+- Easy to install and use via `pip` and Homebrew.
+
+## Installation
+
+### Using pip
+
+To install `repo-to-text` via pip, run the following command:
+
+```bash
+pip install git+https://github.com/yourusername/repo-to-text.git
+```
+
+### Using Homebrew
+
+To install `repo-to-text` via Homebrew, run the following command:
+
+```bash
+brew install yourusername/repo-to-text
+```
+
+### Install Locally
+
+To install `repo-to-text` locally for development, follow these steps:
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/repo-to-text.git
+   cd repo-to-text
+   ```
+
+2. Install the package locally:
+
+   ```bash
+   pip install -e .
+   ```
+
+## Usage
+
+After installation, you can use the `repo-to-text` command in your terminal. Navigate to the directory you want to convert and run:
+
+```bash
+repo-to-text
+```
+
+This will create a file named repo_snapshot.txt in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
+
+## Enabling Debug Logging
+
+By default, repo-to-text runs with INFO logging level. To enable DEBUG logging, use the --debug flag:
+
+```bash
+repo-to-text --debug
+```
+
+## Example Output
+
+The generated text file will include the directory structure and contents of each file. For example:
+
+```
+.
+├── README.md
+├── repo_to_text
+│   ├── __init__.py
+│   └── main.py
+├── requirements.txt
+├── setup.py
+└── tests
+    ├── __init__.py
+    └── test_main.py
+
+README.md
+```
+```
+# Contents of README.md
+...
+```
+```
+# Contents of repo_to_text/__init__.py
+...
+```
+...
+
+## Running Tests
+
+To run the tests, use the following command:
+
+```bash
+pytest
+```
+
+Make sure you have `pytest` installed. If not, you can install it using:
+
+```bash
+pip install pytest
+```
+
+## Uninstall Locally
+
+To uninstall the locally installed package, run the following command from the directory where the repository is located:
+
+```bash
+pip uninstall repo-to-text
+```
+
+## Contributing
+
+Contributions are welcome! If you have any suggestions or find a bug, please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+For any inquiries or feedback, please contact [yourname](mailto:youremail@example.com).
+
+```
+
+Contents of setup.py:
+```
+from setuptools import setup, find_packages
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
+setup(
+    name='repo-to-text',
+    version='0.1',
+    packages=find_packages(),
+    install_requires=required,
+    entry_points={
+        'console_scripts': [
+            'repo-to-text=repo_to_text.main:main',
+        ],
+    },
+)
+```
+
+Contents of tests/__init__.py:
+```
+
+```
+
+Contents of tests/test_main.py:
+```
+import os
+import subprocess
+import pytest
+import time
+
+def test_repo_to_text():
+    # Remove any existing snapshot files to avoid conflicts
+    for file in os.listdir('.'):
+        if file.startswith('repo_snapshot_') and file.endswith('.txt'):
+            os.remove(file)
+    
+    # Run the repo-to-text command
+    result = subprocess.run(['repo-to-text'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+    # Assert that the command ran without errors
+    assert result.returncode == 0, f"Command failed with error: {result.stderr.decode('utf-8')}"
+    
+    # Check for the existence of the new snapshot file
+    snapshot_files = [f for f in os.listdir('.') if f.startswith('repo_snapshot_') and f.endswith('.txt')]
+    assert len(snapshot_files) == 1, "No snapshot file created or multiple files created"
+    
+    # Verify that the snapshot file is not empty
+    with open(snapshot_files[0], 'r') as f:
+        content = f.read()
+    assert len(content) > 0, "Snapshot file is empty"
+    
+    # Clean up the generated snapshot file
+    os.remove(snapshot_files[0])
+
+if __name__ == "__main__":
+    pytest.main()
+
+```
+
+Contents of repo_to_text/__init__.py:
+```
+
+```
+
+Contents of repo_to_text/main.py:
+```
+import os
+import subprocess
+import pathspec
+import logging
+import argparse
+from datetime import datetime
+import pyperclip
+
+def setup_logging(debug=False):
+    logging_level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_tree_structure(path='.', gitignore_spec=None) -> str:
+    logging.debug(f'Generating tree structure for path: {path}')
+    result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
+    tree_output = result.stdout.decode('utf-8')
+    logging.debug(f'Tree output generated: {tree_output}')
+
+    if not gitignore_spec:
+        logging.debug('No .gitignore specification found')
+        return tree_output
+
+    logging.debug('Filtering tree output based on .gitignore specification')
+    filtered_lines = []
+    for line in tree_output.splitlines():
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            relative_path = os.path.relpath(full_path, path)
+            if not gitignore_spec.match_file(relative_path) and not is_ignored_path(relative_path):
+                filtered_lines.append(line.replace('./', '', 1))
+    
+    logging.debug('Tree structure filtering complete')
+    return '\n'.join(filtered_lines)
+
+def load_gitignore(path='.'):
+    gitignore_path = os.path.join(path, '.gitignore')
+    if os.path.exists(gitignore_path):
+        logging.debug(f'Loading .gitignore from path: {gitignore_path}')
+        with open(gitignore_path, 'r') as f:
+            return pathspec.PathSpec.from_lines('gitwildmatch', f)
+    logging.debug('.gitignore not found')
+    return None
+
+def is_ignored_path(file_path: str) -> bool:
+    ignored_dirs = ['.git']
+    ignored_files_prefix = ['repo_snapshot_']
+    is_ignored_dir = any(ignored in file_path for ignored in ignored_dirs)
+    is_ignored_file = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
+    result = is_ignored_dir or is_ignored_file
+    if result:
+        logging.debug(f'Path ignored: {file_path}')
+    return result
+
+def remove_empty_dirs(tree_output: str, path='.') -> str:
+    logging.debug('Removing empty directories from tree output')
+    lines = tree_output.splitlines()
+    non_empty_dirs = set()
+    filtered_lines = []
+
+    for line in lines:
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            if os.path.isdir(full_path) and not any(os.path.isfile(os.path.join(full_path, f)) for f in os.listdir(full_path)):
+                logging.debug(f'Directory is empty and will be removed: {full_path}')
+                continue
+            non_empty_dirs.add(os.path.dirname(full_path))
+            filtered_lines.append(line)
+    
+    final_lines = []
+    for line in filtered_lines:
+        parts = line.strip().split()
+        if parts:
+            full_path = parts[-1]
+            if os.path.isdir(full_path) and full_path not in non_empty_dirs:
+                logging.debug(f'Directory is empty and will be removed: {full_path}')
+                continue
+            final_lines.append(line)
+    
+    logging.debug('Empty directory removal complete')
+    return '\n'.join(final_lines)
+
+def save_repo_to_text(path='.', output_dir=None) -> str:
+    logging.debug(f'Starting to save repo structure to text for path: {path}')
+    gitignore_spec = load_gitignore(path)
+    tree_structure = get_tree_structure(path, gitignore_spec)
+    tree_structure = remove_empty_dirs(tree_structure, path)
+    
+    # Add timestamp to the output file name with a descriptive name
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
+    output_file = f'repo_snapshot_{timestamp}.txt'
+    
+    # Determine the full path to the output file
+    if output_dir:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        output_file = os.path.join(output_dir, output_file)
+    
+    with open(output_file, 'w') as file:
+        project_name = os.path.basename(os.path.abspath(path))
+        file.write(f'Directory: {project_name}\n\n')
+        file.write('Directory Structure:\n')
+        file.write('```\n.\n')
+
+        # Insert .gitignore if it exists
+        if os.path.exists(os.path.join(path, '.gitignore')):
+            file.write('├── .gitignore\n')
+        
+        file.write(tree_structure + '\n' + '```\n')
+        logging.debug('Tree structure written to file')
+
+        for root, _, files in os.walk(path):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                relative_path = os.path.relpath(file_path, path)
+                
+                if is_ignored_path(file_path) or (gitignore_spec and gitignore_spec.match_file(relative_path)):
+                    continue
+
+                relative_path = relative_path.replace('./', '', 1)
+                
+                file.write(f'\nContents of {relative_path}:\n')
+                file.write('```\n')
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        file.write(f.read())
+                except UnicodeDecodeError:
+                    logging.error(f'Could not decode file contents: {file_path}')
+                    file.write('[Could not decode file contents]\n')
+                file.write('\n```\n')
+
+        file.write('\n')
+        logging.debug('Repository contents written to file')
+    
+    # Read the contents of the generated file
+    with open(output_file, 'r') as file:
+        repo_text = file.read()
+    
+    # Copy the contents to the clipboard
+    pyperclip.copy(repo_text)
+    logging.debug('Repository structure and contents copied to clipboard')
+    
+    return output_file
+
+def main():
+    parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
+    args = parser.parse_args()
+
+    setup_logging(debug=args.debug)
+    logging.debug('repo-to-text script started')
+    save_repo_to_text(output_dir=args.output_dir)
+    logging.debug('repo-to-text script finished')
+
+if __name__ == '__main__':
+    main()
+
+```
+
