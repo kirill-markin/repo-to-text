@@ -15,6 +15,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=required,
+    include_package_data=True,
     entry_points={
         'console_scripts': [
             'repo-to-text=repo_to_text.main:main',
