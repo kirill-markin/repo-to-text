@@ -50,7 +50,7 @@ You can customize the behavior of `repo-to-text` with the following options:
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](examples/example_repo_snapshot_2024-06-08-10-30-33-UTC.txt).
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/db89dbfc9cfa3a8eb29dd14763bc477619a3cea4/examples/example_repo_snapshot_2024-06-08-10-30-33-UTC.txt).
 
 ## Install Locally
 
@@ -99,7 +99,7 @@ Contributions are welcome! If you have any suggestions or find a bug, please ope
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/kirill-markin/repo-to-text/blob/main/LICENSE) file for details.
 
 ## Contact
 
