@@ -81,7 +81,7 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
     logging.debug('Empty directory removal complete')
     return '\n'.join(final_lines)
 
-def save_repo_to_text(path='.') -> str:
+def save_repo_to_text(path='.', output_dir=None) -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
     gitignore_spec = load_gitignore(path)
     tree_structure = get_tree_structure(path, gitignore_spec)
@@ -90,6 +90,12 @@ def save_repo_to_text(path='.') -> str:
     # Add timestamp to the output file name with a descriptive name
     timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
     output_file = f'repo_snapshot_{timestamp}.txt'
+    
+    # Determine the full path to the output file
+    if output_dir:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        output_file = os.path.join(output_dir, output_file)
     
     with open(output_file, 'w') as file:
         project_name = os.path.basename(os.path.abspath(path))
@@ -140,11 +146,12 @@ def save_repo_to_text(path='.') -> str:
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
     logging.debug('repo-to-text script started')
-    save_repo_to_text()
+    save_repo_to_text(output_dir=args.output_dir)
     logging.debug('repo-to-text script finished')
 
 if __name__ == '__main__':
