@@ -10,7 +10,7 @@
 - Copies the generated text representation to the clipboard for easy sharing.
 - Easy to install and use via `pip` and Homebrew.
 
-## Installation
+<!-- ## Installation
 
 ### Using pip
 
@@ -26,7 +26,7 @@ To install `repo-to-text` via Homebrew, run the following command:
 
 ```bash
 brew install yourusername/repo-to-text
-```
+``` -->
 
 ### Install Locally
 
@@ -35,7 +35,7 @@ To install `repo-to-text` locally for development, follow these steps:
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/repo-to-text.git
+    git clone https://github.com/kirill-markin/repo-to-text
     cd repo-to-text
     ```
 
@@ -73,7 +73,7 @@ repo-to-text --debug
 
 ## Example Output
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output](examples/example_repo_snapshot_2024-06-08-09-56-58-UTC.txt).
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](examples/example_repo_snapshot_2024-06-08-09-56-58-UTC.txt).
 
 ## Running Tests
 
@@ -83,15 +83,9 @@ To run the tests, use the following command:
 pytest
 ```
 
-Make sure you have `pytest` installed. If not, you can install it using:
+## Uninstall
 
-```bash
-pip install -r requirements.txt
-```
-
-## Uninstall Locally
-
-To uninstall the locally installed package, run the following command from the directory where the repository is located:
+To uninstall package, run the following command from the directory where the repository is located:
 
 ```bash
 pip uninstall repo-to-text
@@ -107,4 +101,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-For any inquiries or feedback, please contact [yourname](mailto:youremail@example.com).
+This project is maintained by [Kirill Markin](https://github.com/kirill-markin). For any inquiries or feedback, please contact [markinkirill@gmail.com](mailto:markinkirill@gmail.com).
