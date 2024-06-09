@@ -3,3 +3,4 @@ pathspec==0.12.1
 pytest==8.2.2
 argparse==1.4.0
 pyperclip==1.8.2
+PyYAML==6.0.1

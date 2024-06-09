@@ -1,0 +1,12 @@
+# Details: https://github.com/kirill-markin/repo-to-text
+
+# Ignore files and directories for "Contents of ..." section
+# Syntax: gitignore
+ignore-content:
+  - ".repo-to-text-settings.yaml"
+  - "README.md"
+  - "LICENSE"
+  - "examples/"
+  - "tests/"
+  - "MANIFEST.in"
+  - "setup.py"

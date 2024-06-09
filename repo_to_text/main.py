@@ -3,6 +3,7 @@ import subprocess
 import pathspec
 import logging
 import argparse
+import yaml
 from datetime import datetime
 import pyperclip
 
@@ -33,14 +34,32 @@ def get_tree_structure(path='.', gitignore_spec=None) -> str:
     logging.debug('Tree structure filtering complete')
     return '\n'.join(filtered_lines)
 
-def load_gitignore(path='.'):
+def load_ignore_specs(path='.'):
+    gitignore_spec = None
+    content_ignore_spec = None
+
     gitignore_path = os.path.join(path, '.gitignore')
     if os.path.exists(gitignore_path):
         logging.debug(f'Loading .gitignore from path: {gitignore_path}')
         with open(gitignore_path, 'r') as f:
-            return pathspec.PathSpec.from_lines('gitwildmatch', f)
-    logging.debug('.gitignore not found')
-    return None
+            gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
+
+    repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
+    if os.path.exists(repo_settings_path):
+        logging.debug(f'Loading .repo-to-text-settings.yaml from path: {repo_settings_path}')
+        with open(repo_settings_path, 'r') as f:
+            ignore_data = yaml.safe_load(f)
+            if 'ignore-content' in ignore_data:
+                content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', ignore_data['ignore-content'])
+
+    return gitignore_spec, content_ignore_spec
+
+def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec):
+    return (
+        is_ignored_path(file_path) or
+        (gitignore_spec and gitignore_spec.match_file(relative_path)) or
+        (content_ignore_spec and content_ignore_spec.match_file(relative_path))
+    )
 
 def is_ignored_path(file_path: str) -> bool:
     ignored_dirs = ['.git']
@@ -83,7 +102,7 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
 
 def save_repo_to_text(path='.', output_dir=None) -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
-    gitignore_spec = load_gitignore(path)
+    gitignore_spec, content_ignore_spec = load_ignore_specs(path)
     tree_structure = get_tree_structure(path, gitignore_spec)
     tree_structure = remove_empty_dirs(tree_structure, path)
     
@@ -115,7 +134,7 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
                 file_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(file_path, path)
                 
-                if is_ignored_path(file_path) or (gitignore_spec and gitignore_spec.match_file(relative_path)):
+                if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec):
                     continue
 
                 relative_path = relative_path.replace('./', '', 1)
