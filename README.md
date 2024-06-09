@@ -56,6 +56,46 @@ You can customize the behavior of `repo-to-text` with the following options:
   repo-to-text --debug
   ```
 
+## Settings
+
+`repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.
+
+### Creating the Settings File
+
+To create a settings file, add a file named `.repo-to-text-settings.yaml` at the root of your project with the following content:
+
+```yaml
+# Syntax: gitignore rules
+
+# Ignore files and directories for all sections from gitignore file
+# Default: True
+gitignore-import-and-ignore: True
+
+# Ignore files and directories for tree
+# and "Contents of ..." sections
+ignore-tree-and-content:
+  - ".repo-to-text-settings.yaml"
+  - "examples/"
+  - "MANIFEST.in"
+  - "setup.py"
+
+# Ignore files and directories for "Contents of ..." section
+ignore-content:
+  - "README.md"
+  - "LICENSE"
+  - "tests/"
+```
+
+You can copy this file from the [existing example in the project](https://github.com/kirill-markin/repo-to-text/blob/main/.repo-to-text-settings.yaml) and adjust it to your needs. This file allows you to specify rules for what should be ignored when creating the text representation of the repository.
+
+### Configuration Options
+
+- **gitignore-import-and-ignore**: Ignore files and directories specified in `.gitignore` for all sections.
+- **ignore-tree-and-content**: Ignore files and directories for the tree and "Contents of ..." sections.
+- **ignore-content**: Ignore files and directories only for the "Contents of ..." section.
+
+Using these settings, you can control which files and directories are included or excluded from the final text file.
+
 ## Install Locally
 
 To install `repo-to-text` locally for development, follow these steps:
@@ -96,46 +136,6 @@ To uninstall the package, run the following command from the directory where the
 ```bash
 pip uninstall repo-to-text
 ```
-
-## Settings
-
-`repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.
-
-### Creating the Settings File
-
-To create a settings file, add a file named `.repo-to-text-settings.yaml` at the root of your project with the following content:
-
-```yaml
-# Syntax: gitignore rules
-
-# Ignore files and directories for all sections from gitignore file
-# Default: True
-gitignore-import-and-ignore: True
-
-# Ignore files and directories for tree
-# and "Contents of ..." sections
-ignore-tree-and-content:
-  - ".repo-to-text-settings.yaml"
-  - "examples/"
-  - "MANIFEST.in"
-  - "setup.py"
-
-# Ignore files and directories for "Contents of ..." section
-ignore-content:
-  - "README.md"
-  - "LICENSE"
-  - "tests/"
-```
-
-You can copy this file from the [existing example in the project](https://github.com/kirill-markin/repo-to-text/blob/main/.repo-to-text-settings.yaml) and adjust it to your needs. This file allows you to specify rules for what should be ignored when creating the text representation of the repository.
-
-### Configuration Options
-
-- **gitignore-import-and-ignore**: Ignore files and directories specified in `.gitignore` for all sections.
-- **ignore-tree-and-content**: Ignore files and directories for the tree and "Contents of ..." sections.
-- **ignore-content**: Ignore files and directories only for the "Contents of ..." section.
-
-Using these settings, you can control which files and directories are included or excluded from the final text file.
 
 ## Contributing
 
