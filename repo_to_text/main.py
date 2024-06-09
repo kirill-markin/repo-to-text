@@ -11,24 +11,24 @@ def setup_logging(debug=False):
     logging_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def get_tree_structure(path='.', gitignore_spec=None) -> str:
+def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_spec=None) -> str:
     logging.debug(f'Generating tree structure for path: {path}')
     result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
     tree_output = result.stdout.decode('utf-8')
     logging.debug(f'Tree output generated: {tree_output}')
 
-    if not gitignore_spec:
-        logging.debug('No .gitignore specification found')
+    if not gitignore_spec and not tree_and_content_ignore_spec:
+        logging.debug('No .gitignore or ignore-tree-and-content specification found')
         return tree_output
 
-    logging.debug('Filtering tree output based on .gitignore specification')
+    logging.debug('Filtering tree output based on .gitignore and ignore-tree-and-content specification')
     filtered_lines = []
     for line in tree_output.splitlines():
         parts = line.strip().split()
         if parts:
             full_path = parts[-1]
             relative_path = os.path.relpath(full_path, path)
-            if not gitignore_spec.match_file(relative_path) and not is_ignored_path(relative_path):
+            if not should_ignore_file(full_path, relative_path, gitignore_spec, None, tree_and_content_ignore_spec):
                 filtered_lines.append(line.replace('./', '', 1))
     
     logging.debug('Tree structure filtering complete')
@@ -37,6 +37,7 @@ def get_tree_structure(path='.', gitignore_spec=None) -> str:
 def load_ignore_specs(path='.'):
     gitignore_spec = None
     content_ignore_spec = None
+    tree_and_content_ignore_spec = None
 
     gitignore_path = os.path.join(path, '.gitignore')
     if os.path.exists(gitignore_path):
@@ -51,14 +52,18 @@ def load_ignore_specs(path='.'):
             ignore_data = yaml.safe_load(f)
             if 'ignore-content' in ignore_data:
                 content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', ignore_data['ignore-content'])
+            if 'ignore-tree-and-content' in ignore_data:
+                tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', ignore_data['ignore-tree-and-content'])
 
-    return gitignore_spec, content_ignore_spec
+    return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
 
-def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec):
+
+def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
     return (
         is_ignored_path(file_path) or
         (gitignore_spec and gitignore_spec.match_file(relative_path)) or
-        (content_ignore_spec and content_ignore_spec.match_file(relative_path))
+        (content_ignore_spec and content_ignore_spec.match_file(relative_path)) or
+        (tree_and_content_ignore_spec and tree_and_content_ignore_spec.match_file(relative_path))
     )
 
 def is_ignored_path(file_path: str) -> bool:
@@ -102,8 +107,8 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
 
 def save_repo_to_text(path='.', output_dir=None) -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
-    gitignore_spec, content_ignore_spec = load_ignore_specs(path)
-    tree_structure = get_tree_structure(path, gitignore_spec)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
     tree_structure = remove_empty_dirs(tree_structure, path)
     
     # Add timestamp to the output file name with a descriptive name
@@ -134,7 +139,7 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
                 file_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(file_path, path)
                 
-                if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec):
+                if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
                     continue
 
                 relative_path = relative_path.replace('./', '', 1)
