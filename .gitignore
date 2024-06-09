@@ -168,5 +168,5 @@ cython_debug/
 # Ignore egg-info directory
 repo_to_text.egg-info/
 
-# Ignore generated repo_snapshot_*.txt files
-repo_snapshot_*.txt
+# Ignore generated repo-to-text_*.txt files
+repo-to-text_*.txt

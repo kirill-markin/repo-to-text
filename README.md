@@ -6,7 +6,7 @@
 
 ![Example Output](https://raw.githubusercontent.com/kirill-markin/repo-to-text/main/examples/screenshot-demo.jpg)
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo_snapshot_2024-06-08-11-35-28-UTC.txt).
+The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo-to-text_2024-06-09-08-06-31-UTC.txt).
 
 The same text will appear in your clipboard. You can paste it into a dialog with the LLM and start communicating.
 
@@ -36,7 +36,7 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
-This will create a file named `repo_snapshot_YYYY-MM-DD-HH-MM-SS-UTC.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
+This will create a file named `repo-to-text_YYYY-MM-DD-HH-MM-SS-UTC.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
 ### Options
 
