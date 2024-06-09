@@ -38,25 +38,27 @@ def load_ignore_specs(path='.'):
     gitignore_spec = None
     content_ignore_spec = None
     tree_and_content_ignore_spec = None
-
-    gitignore_path = os.path.join(path, '.gitignore')
-    if os.path.exists(gitignore_path):
-        logging.debug(f'Loading .gitignore from path: {gitignore_path}')
-        with open(gitignore_path, 'r') as f:
-            gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
+    use_gitignore = True
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
     if os.path.exists(repo_settings_path):
         logging.debug(f'Loading .repo-to-text-settings.yaml from path: {repo_settings_path}')
         with open(repo_settings_path, 'r') as f:
-            ignore_data = yaml.safe_load(f)
-            if 'ignore-content' in ignore_data:
-                content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', ignore_data['ignore-content'])
-            if 'ignore-tree-and-content' in ignore_data:
-                tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', ignore_data['ignore-tree-and-content'])
+            settings = yaml.safe_load(f)
+            use_gitignore = settings.get('gitignore-import-and-ignore', True)
+            if 'ignore-content' in settings:
+                content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-content'])
+            if 'ignore-tree-and-content' in settings:
+                tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-tree-and-content'])
+
+    if use_gitignore:
+        gitignore_path = os.path.join(path, '.gitignore')
+        if os.path.exists(gitignore_path):
+            logging.debug(f'Loading .gitignore from path: {gitignore_path}')
+            with open(gitignore_path, 'r') as f:
+                gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
 
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
-
 
 def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
     return (

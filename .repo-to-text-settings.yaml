@@ -1,6 +1,10 @@
 # Details: https://github.com/kirill-markin/repo-to-text
 # Syntax: gitignore rules
 
+# Ignore files and directories for all sections from gitignore file
+# Default: True
+gitignore-import-and-ignore: True
+
 # Ignore files and directories for tree
 # and "Contents of ..." sections
 ignore-tree-and-content:
