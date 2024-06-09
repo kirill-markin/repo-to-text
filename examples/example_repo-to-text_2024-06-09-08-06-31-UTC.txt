@@ -1,3 +1,40 @@
+Directory: repo-to-text
+
+Directory Structure:
+```
+.
+├── .gitignore
+├── LICENSE
+├── README.md
+├── repo_to_text
+│   ├── repo_to_text/__init__.py
+│   └── repo_to_text/main.py
+├── requirements.txt
+└── tests
+    ├── tests/__init__.py
+    └── tests/test_main.py
+```
+
+Contents of requirements.txt:
+```
+setuptools==70.0.0
+pathspec==0.12.1
+pytest==8.2.2
+argparse==1.4.0
+pyperclip==1.8.2
+PyYAML==6.0.1
+
+```
+
+Contents of repo_to_text/__init__.py:
+```
+__author__ = 'Kirill Markin'
+__email__ = 'markinkirill@gmail.com'
+
+```
+
+Contents of repo_to_text/main.py:
+```
 import os
 import subprocess
 import pathspec
@@ -183,3 +220,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+```
+
