@@ -56,6 +56,12 @@ You can customize the behavior of `repo-to-text` with the following options:
   repo-to-text --debug
   ```
 
+  or to save the debug log to a file:
+
+  ```bash
+  repo-to-text --debug > debug_log.txt 2>&1
+  ```
+
 ## Settings
 
 `repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.

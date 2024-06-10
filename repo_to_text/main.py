@@ -24,15 +24,18 @@ def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_sp
     logging.debug('Filtering tree output based on .gitignore and ignore-tree-and-content specification')
     filtered_lines = []
     for line in tree_output.splitlines():
-        parts = line.strip().split()
-        if parts:
-            full_path = parts[-1]
+        stripped_line = line.strip()
+        if stripped_line:
+            # Extract the path by removing the leading tree branch symbols
+            full_path = stripped_line.split(maxsplit=1)[-1]
             relative_path = os.path.relpath(full_path, path)
             if not should_ignore_file(full_path, relative_path, gitignore_spec, None, tree_and_content_ignore_spec):
                 filtered_lines.append(line.replace('./', '', 1))
-    
+
+    filtered_tree_output = '\n'.join(filtered_lines)
+    logging.debug(f'Filtered tree structure: {filtered_tree_output}')
     logging.debug('Tree structure filtering complete')
-    return '\n'.join(filtered_lines)
+    return filtered_tree_output
 
 def load_ignore_specs(path='.'):
     gitignore_spec = None
@@ -61,13 +64,16 @@ def load_ignore_specs(path='.'):
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
 
 def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
-    return (
+    result = (
         is_ignored_path(file_path) or
         (gitignore_spec and gitignore_spec.match_file(relative_path)) or
         (content_ignore_spec and content_ignore_spec.match_file(relative_path)) or
         (tree_and_content_ignore_spec and tree_and_content_ignore_spec.match_file(relative_path)) or
         os.path.basename(file_path).startswith('repo-to-text_')
     )
+    
+    logging.debug(f'Checking if file should be ignored: {file_path}, relative path: {relative_path}, result: {result}')
+    return result
 
 def is_ignored_path(file_path: str) -> bool:
     ignored_dirs = ['.git']
@@ -113,6 +119,7 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
     tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
     tree_structure = remove_empty_dirs(tree_structure, path)
+    logging.debug(f'Final tree structure to be written: {tree_structure}')
     
     # Add timestamp to the output file name with a descriptive name
     timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
