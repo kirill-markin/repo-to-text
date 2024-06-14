@@ -1,19 +1,20 @@
 import os
 import subprocess
-import pathspec
+import shutil
 import logging
 import argparse
 import yaml
 from datetime import datetime
-import pyperclip
-import shutil
+
+# Importing the missing pathspec module
+import pathspec
 
 def setup_logging(debug=False):
     logging_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def check_tree_command():
-    """ Check if the `tree` command is available, and suggest installation if not. """
+    """Check if the `tree` command is available, and suggest installation if not."""
     if shutil.which('tree') is None:
         print("The 'tree' command is not found. Please install it using one of the following commands:")
         print("For Debian-based systems (e.g., Ubuntu): sudo apt-get install tree")
@@ -185,8 +186,13 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
         repo_text = file.read()
     
     # Copy the contents to the clipboard
-    pyperclip.copy(repo_text)
-    logging.debug('Repository structure and contents copied to clipboard')
+    try:
+        import pyperclip
+        pyperclip.copy(repo_text)
+        logging.debug('Repository structure and contents copied to clipboard')
+    except Exception as e:
+        logging.warning('Could not copy to clipboard. You might be running this script over SSH or without clipboard support.')
+        logging.debug(f'Clipboard copy error: {e}')
     
     return output_file
 
