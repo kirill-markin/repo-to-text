@@ -102,6 +102,14 @@ You can copy this file from the [existing example in the project](https://github
 
 Using these settings, you can control which files and directories are included or excluded from the final text file.
 
+## gitignore Rule to Ignore generated files
+
+To ignore the generated text files, add the following lines to your `.gitignore` file:
+
+```gitignore
+repo-to-text_*.txt
+```
+
 ## Install Locally
 
 To install `repo-to-text` locally for development, follow these steps:
