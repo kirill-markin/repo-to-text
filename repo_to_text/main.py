@@ -6,12 +6,25 @@ import argparse
 import yaml
 from datetime import datetime
 import pyperclip
+import shutil
 
 def setup_logging(debug=False):
     logging_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def check_tree_command():
+    """ Check if the `tree` command is available, and suggest installation if not. """
+    if shutil.which('tree') is None:
+        print("The 'tree' command is not found. Please install it using one of the following commands:")
+        print("For Debian-based systems (e.g., Ubuntu): sudo apt-get install tree")
+        print("For Red Hat-based systems (e.g., Fedora, CentOS): sudo yum install tree")
+        return False
+    return True
+
 def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_spec=None) -> str:
+    if not check_tree_command():
+        return ""
+    
     logging.debug(f'Generating tree structure for path: {path}')
     result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
     tree_output = result.stdout.decode('utf-8')
