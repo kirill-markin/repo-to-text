@@ -28,6 +28,12 @@ To install `repo-to-text` via pip, run the following command:
 pip install repo-to-text
 ```
 
+To upgrade to the latest version, use the following command:
+
+```bash
+pip install --upgrade repo-to-text
+```
+
 ## Usage
 
 After installation, you can use the `repo-to-text` command in your terminal. Navigate to the directory you want to convert and run:
