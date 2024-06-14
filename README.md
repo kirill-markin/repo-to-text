@@ -1,4 +1,4 @@
-# repo-to-text
+# Repository to Text Conversion: repo-to-text command
 
 `repo-to-text` is an open-source project that converts the structure and contents of a directory (repository) into a single text file. By executing a simple command in the terminal, this tool generates a text representation of the directory, including the output of the `tree` command and the contents of each file, formatted for easy reading and sharing. This can be very useful for development and debugging with LLM.
 
