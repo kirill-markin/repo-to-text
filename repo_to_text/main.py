@@ -5,6 +5,7 @@ import logging
 import argparse
 import yaml
 from datetime import datetime
+import textwrap
 
 # Importing the missing pathspec module
 import pathspec
@@ -196,15 +197,49 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
     
     return output_file
 
+def create_default_settings_file():
+    settings_file = '.repo-to-text-settings.yaml'
+    if os.path.exists(settings_file):
+        raise FileExistsError(f"The settings file '{settings_file}' already exists. Please remove it or rename it if you want to create a new default settings file.")
+    
+    default_settings = textwrap.dedent("""\
+        # Details: https://github.com/kirill-markin/repo-to-text
+        # Syntax: gitignore rules
+
+        # Ignore files and directories for all sections from gitignore file
+        # Default: True
+        gitignore-import-and-ignore: True
+
+        # Ignore files and directories for tree
+        # and "Contents of ..." sections
+        ignore-tree-and-content:
+          - ".repo-to-text-settings.yaml"
+
+        # Ignore files and directories for "Contents of ..." section
+        ignore-content:
+          - "README.md"
+          - "LICENSE"
+    """)
+    with open('.repo-to-text-settings.yaml', 'w') as f:
+        f.write(default_settings)
+    print("Default .repo-to-text-settings.yaml created.")
+
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
+    parser.add_argument('--create-settings', action='store_true', help='Create default .repo-to-text-settings.yaml file')  # Новый аргумент
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
     logging.debug('repo-to-text script started')
-    save_repo_to_text(output_dir=args.output_dir)
+    
+    if args.create_settings:
+        create_default_settings_file()
+        logging.debug('.repo-to-text-settings.yaml file created')
+    else:
+        save_repo_to_text(output_dir=args.output_dir)
+    
     logging.debug('repo-to-text script finished')
 
 if __name__ == '__main__':
