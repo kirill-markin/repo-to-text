@@ -16,7 +16,7 @@ The same text will appear in your clipboard. You can paste it into a dialog with
 - Includes the output of the `tree` command.
 - Saves the contents of each file, encapsulated in markdown code blocks.
 - Copies the generated text representation to the clipboard for easy sharing.
-- Easy to install and use via `pip` and Homebrew.
+- Easy to install and use via `pip`.
 
 ## Installation
 
