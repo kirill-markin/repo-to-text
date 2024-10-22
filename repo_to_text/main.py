@@ -30,7 +30,7 @@ def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_sp
     logging.debug(f'Generating tree structure for path: {path}')
     result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
     tree_output = result.stdout.decode('utf-8')
-    logging.debug(f'Tree output generated: {tree_output}')
+    logging.debug(f'Tree output generated:\n{tree_output}')
 
     if not gitignore_spec and not tree_and_content_ignore_spec:
         logging.debug('No .gitignore or ignore-tree-and-content specification found')
@@ -38,17 +38,38 @@ def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_sp
 
     logging.debug('Filtering tree output based on .gitignore and ignore-tree-and-content specification')
     filtered_lines = []
+
     for line in tree_output.splitlines():
-        stripped_line = line.strip()
-        if stripped_line:
-            # Extract the path by removing the leading tree branch symbols
-            full_path = stripped_line.split(maxsplit=1)[-1]
-            relative_path = os.path.relpath(full_path, path)
-            if not should_ignore_file(full_path, relative_path, gitignore_spec, None, tree_and_content_ignore_spec):
-                filtered_lines.append(line.replace('./', '', 1))
+        # Find the index where the path starts (look for './' or absolute path)
+        idx = line.find('./')
+        if idx == -1:
+            idx = line.find(path)
+        if idx != -1:
+            full_path = line[idx:].strip()
+        else:
+            # If neither './' nor the absolute path is found, skip the line
+            continue
+        
+        # Skip the root directory '.'
+        if full_path == '.':
+            continue
+
+        # Normalize paths
+        relative_path = os.path.relpath(full_path, path)
+        relative_path = relative_path.replace(os.sep, '/')
+        if os.path.isdir(full_path):
+            relative_path += '/'
+
+        # Check if the file should be ignored
+        if not should_ignore_file(full_path, relative_path, gitignore_spec, None, tree_and_content_ignore_spec):
+            # Remove './' from display output for clarity
+            display_line = line.replace('./', '', 1)
+            filtered_lines.append(display_line)
+        else:
+            logging.debug(f'Ignored: {relative_path}')
 
     filtered_tree_output = '\n'.join(filtered_lines)
-    logging.debug(f'Filtered tree structure: {filtered_tree_output}')
+    logging.debug(f'Filtered tree structure:\n{filtered_tree_output}')
     logging.debug('Tree structure filtering complete')
     return filtered_tree_output
 
