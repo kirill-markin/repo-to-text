@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='repo-to-text',
-    version='0.4.0',
+    version='0.4.2',
     author='Kirill Markin',
     author_email='markinkirill@gmail.com',
     description='Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks. It may be useful to chat with LLM about your code.',
