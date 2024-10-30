@@ -19,6 +19,7 @@ setup(
     entry_points={
         'console_scripts': [
             'repo-to-text=repo_to_text.main:main',
+            'flatten=repo_to_text.main:main',
         ],
     },
     classifiers=[

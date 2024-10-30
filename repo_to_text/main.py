@@ -256,7 +256,7 @@ def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
-    parser.add_argument('--create-settings', action='store_true', help='Create default .repo-to-text-settings.yaml file')  # Новый аргумент
+    parser.add_argument('--create-settings', '--init', action='store_true', help='Create default .repo-to-text-settings.yaml file')
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
