@@ -206,15 +206,22 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
     # Read the contents of the generated file
     with open(output_file, 'r') as file:
         repo_text = file.read()
-    
-    # Copy the contents to the clipboard
+
+    # Try to copy to clipboard if pyperclip is installed
     try:
-        import pyperclip
-        pyperclip.copy(repo_text)
-        logging.debug('Repository structure and contents copied to clipboard')
+        import importlib.util
+        if importlib.util.find_spec("pyperclip"):
+            import pyperclip
+            pyperclip.copy(repo_text)
+            logging.debug('Repository structure and contents copied to clipboard')
+        else:
+            print("Tip: Install 'pyperclip' package to enable automatic clipboard copying:")
+            print("     pip install pyperclip")
     except Exception as e:
         logging.warning('Could not copy to clipboard. You might be running this script over SSH or without clipboard support.')
         logging.debug(f'Clipboard copy error: {e}')
+    
+    print(f"[SUCCESS] Repository structure and contents successfully saved to file: \"./{output_file}\"")
     
     return output_file
 
