@@ -254,6 +254,7 @@ def create_default_settings_file():
 
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+    parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')  # P3e87
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
     parser.add_argument('--create-settings', action='store_true', help='Create default .repo-to-text-settings.yaml file')  # Новый аргумент
@@ -266,7 +267,7 @@ def main():
         create_default_settings_file()
         logging.debug('.repo-to-text-settings.yaml file created')
     else:
-        save_repo_to_text(output_dir=args.output_dir)
+        save_repo_to_text(path=args.input_dir, output_dir=args.output_dir)  # Pf5b7
     
     logging.debug('repo-to-text script finished')
 

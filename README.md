@@ -76,6 +76,12 @@ You can customize the behavior of `repo-to-text` with the following options:
   repo-to-text --debug > debug_log.txt 2>&1
   ```
 
+- `input_dir`: Specify the directory to process. If not provided, the current directory (`.`) will be used. For example:
+
+  ```bash
+  repo-to-text /path/to/input_dir
+  ```
+
 ## Settings
 
 `repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.
