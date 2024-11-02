@@ -150,7 +150,7 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
     logging.debug('Empty directory removal complete')
     return '\n'.join(final_lines)
 
-def save_repo_to_text(path='.', output_dir=None) -> str:
+def save_repo_to_text(path='.', output_dir=None, to_stdout=False) -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
     tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
@@ -167,52 +167,57 @@ def save_repo_to_text(path='.', output_dir=None) -> str:
             os.makedirs(output_dir)
         output_file = os.path.join(output_dir, output_file)
     
-    with open(output_file, 'w') as file:
-        project_name = os.path.basename(os.path.abspath(path))
-        file.write(f'Directory: {project_name}\n\n')
-        file.write('Directory Structure:\n')
-        file.write('```\n.\n')
+    output_content = []
+    project_name = os.path.basename(os.path.abspath(path))
+    output_content.append(f'Directory: {project_name}\n\n')
+    output_content.append('Directory Structure:\n')
+    output_content.append('```\n.\n')
 
-        # Insert .gitignore if it exists
-        if os.path.exists(os.path.join(path, '.gitignore')):
-            file.write('├── .gitignore\n')
-        
-        file.write(tree_structure + '\n' + '```\n')
-        logging.debug('Tree structure written to file')
-
-        for root, _, files in os.walk(path):
-            for filename in files:
-                file_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(file_path, path)
-                
-                if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
-                    continue
-
-                relative_path = relative_path.replace('./', '', 1)
-                
-                file.write(f'\nContents of {relative_path}:\n')
-                file.write('```\n')
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        file.write(f.read())
-                except UnicodeDecodeError:
-                    logging.debug(f'Could not decode file contents: {file_path}')
-                    file.write('[Could not decode file contents]\n')
-                file.write('\n```\n')
-
-        file.write('\n')
-        logging.debug('Repository contents written to file')
+    # Insert .gitignore if it exists
+    if os.path.exists(os.path.join(path, '.gitignore')):
+        output_content.append('├── .gitignore\n')
     
-    # Read the contents of the generated file
-    with open(output_file, 'r') as file:
-        repo_text = file.read()
+    output_content.append(tree_structure + '\n' + '```\n')
+    logging.debug('Tree structure written to output content')
 
+    for root, _, files in os.walk(path):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            relative_path = os.path.relpath(file_path, path)
+            
+            if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
+                continue
+
+            relative_path = relative_path.replace('./', '', 1)
+            
+            output_content.append(f'\nContents of {relative_path}:\n')
+            output_content.append('```\n')
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    output_content.append(f.read())
+            except UnicodeDecodeError:
+                logging.debug(f'Could not decode file contents: {file_path}')
+                output_content.append('[Could not decode file contents]\n')
+            output_content.append('\n```\n')
+
+    output_content.append('\n')
+    logging.debug('Repository contents written to output content')
+    
+    output_text = ''.join(output_content)
+    
+    if to_stdout:
+        print(output_text)
+        return output_text
+
+    with open(output_file, 'w') as file:
+        file.write(output_text)
+    
     # Try to copy to clipboard if pyperclip is installed
     try:
         import importlib.util
         if importlib.util.find_spec("pyperclip"):
             import pyperclip
-            pyperclip.copy(repo_text)
+            pyperclip.copy(output_text)
             logging.debug('Repository structure and contents copied to clipboard')
         else:
             print("Tip: Install 'pyperclip' package to enable automatic clipboard copying:")
@@ -254,9 +259,11 @@ def create_default_settings_file():
 
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+    parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
-    parser.add_argument('--create-settings', action='store_true', help='Create default .repo-to-text-settings.yaml file')  # Новый аргумент
+    parser.add_argument('--create-settings', '--init', action='store_true', help='Create default .repo-to-text-settings.yaml file')
+    parser.add_argument('--stdout', action='store_true', help='Output to stdout instead of a file')
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
@@ -266,7 +273,11 @@ def main():
         create_default_settings_file()
         logging.debug('.repo-to-text-settings.yaml file created')
     else:
-        save_repo_to_text(output_dir=args.output_dir)
+        save_repo_to_text(
+            path=args.input_dir,
+            output_dir=args.output_dir,
+            to_stdout=args.stdout
+        )
     
     logging.debug('repo-to-text script finished')
 
