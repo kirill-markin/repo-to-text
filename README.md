@@ -82,6 +82,14 @@ You can customize the behavior of `repo-to-text` with the following options:
   repo-to-text /path/to/input_dir
   ```
 
+- `--stdout`: Output the generated text to stdout instead of a file. This is useful for piping the output to another command or saving it to a file using shell redirection. For example:
+
+  ```bash
+  repo-to-text --stdout > myfile.txt
+  ```
+
+  This will write the output directly to `myfile.txt` instead of creating a timestamped file.
+
 ## Settings
 
 `repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.
