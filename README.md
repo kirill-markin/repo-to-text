@@ -42,6 +42,12 @@ After installation, you can use the `repo-to-text` command in your terminal. Nav
 repo-to-text
 ```
 
+or
+
+```bash
+flatten
+```
+
 This will create a file named `repo-to-text_YYYY-MM-DD-HH-MM-SS-UTC.txt` in the current directory with the text representation of the repository. The contents of this file will also be copied to your clipboard for easy sharing.
 
 ### Options
@@ -56,10 +62,16 @@ You can customize the behavior of `repo-to-text` with the following options:
   
   This will save the file in the specified output directory instead of the current directory.
 
-- `--create-settings`: Create a default `.repo-to-text-settings.yaml` file with predefined settings. This is useful if you want to start with a template settings file and customize it according to your needs. To create the default settings file, run the following command in your terminal:
+- `--create-settings` or `--init`: Create a default `.repo-to-text-settings.yaml` file with predefined settings. This is useful if you want to start with a template settings file and customize it according to your needs. To create the default settings file, run the following command in your terminal:
 
   ```bash
   repo-to-text --create-settings
+  ```
+
+  or
+
+  ```bash
+  repo-to-text --init
   ```
 
   This will create a file named `.repo-to-text-settings.yaml` in the current directory. If the file already exists, an error will be raised to prevent overwriting.

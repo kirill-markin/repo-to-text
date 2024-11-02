@@ -259,10 +259,10 @@ def create_default_settings_file():
 
 def main():
     parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
-    parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')  # P3e87
+    parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
-    parser.add_argument('--create-settings', action='store_true', help='Create default .repo-to-text-settings.yaml file')
+    parser.add_argument('--create-settings', '--init', action='store_true', help='Create default .repo-to-text-settings.yaml file')
     parser.add_argument('--stdout', action='store_true', help='Output to stdout instead of a file')
     args = parser.parse_args()
 
