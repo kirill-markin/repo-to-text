@@ -73,10 +73,10 @@ def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_sp
     logging.debug('Tree structure filtering complete')
     return filtered_tree_output
 
-def load_ignore_specs(path='.'):
+ def load_ignore_specs(path='.', cli_ignore_patterns=None):
     gitignore_spec = None
     content_ignore_spec = None
-    tree_and_content_ignore_spec = None
+    tree_and_content_ignore_list = []
     use_gitignore = True
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
@@ -88,7 +88,10 @@ def load_ignore_specs(path='.'):
             if 'ignore-content' in settings:
                 content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-content'])
             if 'ignore-tree-and-content' in settings:
-                tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-tree-and-content'])
+                tree_and_content_ignore_list.extend(settings['ignore-tree-and-content'])
+
+    if cli_ignore_patterns:
+        tree_and_content_ignore_list.extend(cli_ignore_patterns)
 
     if use_gitignore:
         gitignore_path = os.path.join(path, '.gitignore')
@@ -97,6 +100,7 @@ def load_ignore_specs(path='.'):
             with open(gitignore_path, 'r') as f:
                 gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
 
+    tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', tree_and_content_ignore_list)
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
 
 def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
@@ -148,11 +152,11 @@ def remove_empty_dirs(tree_output: str, path='.') -> str:
             final_lines.append(line)
     
     logging.debug('Empty directory removal complete')
-    return '\n'.join(final_lines)
+    return '\n'.join(filtered_lines)
 
-def save_repo_to_text(path='.', output_dir=None, to_stdout=False) -> str:
+def save_repo_to_text(path='.', output_dir=None, to_stdout=False, cli_ignore_patterns=None) -> str:
     logging.debug(f'Starting to save repo structure to text for path: {path}')
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path, cli_ignore_patterns)
     tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
     tree_structure = remove_empty_dirs(tree_structure, path)
     logging.debug(f'Final tree structure to be written: {tree_structure}')
@@ -264,6 +268,7 @@ def main():
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
     parser.add_argument('--create-settings', '--init', action='store_true', help='Create default .repo-to-text-settings.yaml file')
     parser.add_argument('--stdout', action='store_true', help='Output to stdout instead of a file')
+    parser.add_argument('--ignore-patterns', nargs='*', help="List of files or directories to ignore in both tree and content sections. Supports wildcards (e.g., '*').")
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
@@ -276,7 +281,8 @@ def main():
         save_repo_to_text(
             path=args.input_dir,
             output_dir=args.output_dir,
-            to_stdout=args.stdout
+            to_stdout=args.stdout,
+            cli_ignore_patterns=args.ignore_patterns
         )
     
     logging.debug('repo-to-text script finished')
