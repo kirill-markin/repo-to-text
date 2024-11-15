@@ -142,6 +142,22 @@ You can copy this file from the [existing example in the project](https://github
 
 Using these settings, you can control which files and directories are included or excluded from the final text file.
 
+### Wildcards and Inclusions
+
+Using Wildcard Patterns
+
+- `*.ext`: Matches any file ending with .ext in any directory.
+- `dir/*.ext`: Matches files ending with .ext in the specified directory dir/.
+- `**/*.ext`: Matches files ending with .ext in any subdirectory (recursive).
+
+If you want to include certain files that would otherwise be ignored, use the ! pattern:
+
+```yaml
+ignore-tree-and-content:
+  - "*.txt"
+  - "!README.txt"
+```
+
 ## gitignore Rule to Ignore generated files
 
 To ignore the generated text files, add the following lines to your `.gitignore` file:
