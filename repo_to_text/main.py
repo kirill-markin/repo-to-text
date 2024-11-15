@@ -100,6 +100,17 @@ def load_ignore_specs(path='.'):
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
 
 def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
+    # Normalize relative_path to use forward slashes
+    relative_path = relative_path.replace(os.sep, '/')
+
+    # Remove leading './' if present
+    if relative_path.startswith('./'):
+        relative_path = relative_path[2:]
+
+    # Append '/' to directories to match patterns ending with '/'
+    if os.path.isdir(file_path):
+        relative_path += '/'
+
     result = (
         is_ignored_path(file_path) or
         (gitignore_spec and gitignore_spec.match_file(relative_path)) or
@@ -107,8 +118,11 @@ def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_
         (tree_and_content_ignore_spec and tree_and_content_ignore_spec.match_file(relative_path)) or
         os.path.basename(file_path).startswith('repo-to-text_')
     )
-    
-    logging.debug(f'Checking if file should be ignored: {file_path}, relative path: {relative_path}, result: {result}')
+
+    logging.debug(f'Checking if file should be ignored:')
+    logging.debug(f'    file_path: {file_path}')
+    logging.debug(f'    relative_path: {relative_path}')
+    logging.debug(f'    Result: {result}')
     return result
 
 def is_ignored_path(file_path: str) -> bool:
