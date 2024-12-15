@@ -1,0 +1,10 @@
+services:
+  repo-to-text:
+    build: .
+    volumes:
+      - ${HOME:-/home/user}:/home/user
+    working_dir: /home/user
+    environment:
+      - HOME=/home/user
+    user: "${UID:-1000}:${GID:-1000}"
+    entrypoint: ["/bin/bash"]
