@@ -73,7 +73,7 @@ def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_sp
     logging.debug('Tree structure filtering complete')
     return filtered_tree_output
 
- def load_ignore_specs(path='.', cli_ignore_patterns=None):
+def load_ignore_specs(path='.', cli_ignore_patterns=None):
     gitignore_spec = None
     content_ignore_spec = None
     tree_and_content_ignore_list = []
