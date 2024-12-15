@@ -216,7 +216,8 @@ def save_repo_to_text(path='.', output_dir=None, to_stdout=False) -> str:
     try:
         import importlib.util
         if importlib.util.find_spec("pyperclip"):
-            import pyperclip
+            # Import pyperclip only if it's available
+            import pyperclip # type: ignore
             pyperclip.copy(output_text)
             logging.debug('Repository structure and contents copied to clipboard')
         else:
