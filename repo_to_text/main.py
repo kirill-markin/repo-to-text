@@ -4,7 +4,7 @@ import shutil
 import logging
 import argparse
 import yaml
-from datetime import datetime
+from datetime import datetime, timezone
 import textwrap
 
 # Importing the missing pathspec module
@@ -158,7 +158,7 @@ def save_repo_to_text(path='.', output_dir=None, to_stdout=False) -> str:
     logging.debug(f'Final tree structure to be written: {tree_structure}')
     
     # Add timestamp to the output file name with a descriptive name
-    timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-UTC')
     output_file = f'repo-to-text_{timestamp}.txt'
     
     # Determine the full path to the output file
