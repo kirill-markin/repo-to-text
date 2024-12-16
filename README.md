@@ -177,19 +177,31 @@ To install `repo-to-text` locally for development, follow these steps:
     cd repo-to-text
     ```
 
-2. Install the package locally:
+2. Install the package with development dependencies:
 
     ```bash
-    pip install -e .
+    pip install -e .[dev]
     ```
 
-### Installing Dependencies
+### Requirements
 
-To install all the required dependencies, run the following command:
+- Python >= 3.6
+- Core dependencies:
+  - setuptools >= 70.0.0
+  - pathspec >= 0.12.1
+  - argparse >= 1.4.0
+  - PyYAML >= 6.0.1
 
-```bash
-pip install -r requirements.txt
-```
+### Development Dependencies
+
+For development, additional packages are required:
+
+- pytest >= 8.2.2
+- black
+- mypy
+- isort
+- build
+- twine
 
 ### Running Tests
 
