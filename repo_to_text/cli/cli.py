@@ -2,6 +2,7 @@ import argparse
 import textwrap
 import os
 import logging
+import sys
 from typing import NoReturn
 
 from ..utils.utils import setup_logging
@@ -51,21 +52,29 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 def main() -> NoReturn:
-    """Main entry point for the CLI."""
+    """Main entry point for the CLI.
+    
+    Raises:
+        SystemExit: Always exits with code 0 on success
+    """
     args = parse_args()
     setup_logging(debug=args.debug)
     logging.debug('repo-to-text script started')
     
-    if args.create_settings:
-        create_default_settings_file()
-        logging.debug('.repo-to-text-settings.yaml file created')
-    else:
-        save_repo_to_text(
-            path=args.input_dir,
-            output_dir=args.output_dir,
-            to_stdout=args.stdout,
-            cli_ignore_patterns=args.ignore_patterns
-        )
-    
-    logging.debug('repo-to-text script finished')
-    exit(0) 
+    try:
+        if args.create_settings:
+            create_default_settings_file()
+            logging.debug('.repo-to-text-settings.yaml file created')
+        else:
+            save_repo_to_text(
+                path=args.input_dir,
+                output_dir=args.output_dir,
+                to_stdout=args.stdout,
+                cli_ignore_patterns=args.ignore_patterns
+            )
+        
+        logging.debug('repo-to-text script finished')
+        sys.exit(0)
+    except Exception as e:
+        logging.error(f'Error occurred: {str(e)}')
+        sys.exit(1) 

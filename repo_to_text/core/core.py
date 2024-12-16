@@ -3,7 +3,7 @@ import subprocess
 import logging
 import yaml
 from datetime import datetime, timezone
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import pathspec
 from pathspec import PathSpec
 
@@ -33,7 +33,7 @@ def get_tree_structure(path: str = '.', gitignore_spec: Optional[PathSpec] = Non
         return tree_output
 
     logging.debug('Filtering tree output based on .gitignore and ignore-tree-and-content specification')
-    filtered_lines = []
+    filtered_lines: List[str] = []
 
     for line in tree_output.splitlines():
         idx = line.find('./')
@@ -63,7 +63,7 @@ def get_tree_structure(path: str = '.', gitignore_spec: Optional[PathSpec] = Non
     logging.debug('Tree structure filtering complete')
     return filtered_tree_output
 
-def load_ignore_specs(path: str = '.', cli_ignore_patterns: Optional[list] = None) -> Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]:
+def load_ignore_specs(path: str = '.', cli_ignore_patterns: Optional[List[str]] = None) -> Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]:
     """Load ignore specifications from various sources.
     
     Args:
@@ -75,7 +75,7 @@ def load_ignore_specs(path: str = '.', cli_ignore_patterns: Optional[list] = Non
     """
     gitignore_spec = None
     content_ignore_spec = None
-    tree_and_content_ignore_list = []
+    tree_and_content_ignore_list: List[str] = []
     use_gitignore = True
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
@@ -138,7 +138,7 @@ def should_ignore_file(file_path: str, relative_path: str, gitignore_spec: Optio
     logging.debug(f'    Result: {result}')
     return result
 
-def save_repo_to_text(path: str = '.', output_dir: Optional[str] = None, to_stdout: bool = False, cli_ignore_patterns: Optional[list] = None) -> str:
+def save_repo_to_text(path: str = '.', output_dir: Optional[str] = None, to_stdout: bool = False, cli_ignore_patterns: Optional[List[str]] = None) -> str:
     """Save repository structure and contents to a text file.
     
     Args:
@@ -164,7 +164,7 @@ def save_repo_to_text(path: str = '.', output_dir: Optional[str] = None, to_stdo
             os.makedirs(output_dir)
         output_file = os.path.join(output_dir, output_file)
     
-    output_content = []
+    output_content: List[str] = []
     project_name = os.path.basename(os.path.abspath(path))
     output_content.append(f'Directory: {project_name}\n\n')
     output_content.append('Directory Structure:\n')
@@ -212,7 +212,7 @@ def save_repo_to_text(path: str = '.', output_dir: Optional[str] = None, to_stdo
         import importlib.util
         if importlib.util.find_spec("pyperclip"):
             import pyperclip # type: ignore
-            pyperclip.copy(output_text)
+            pyperclip.copy(output_text) # type: ignore
             logging.debug('Repository structure and contents copied to clipboard')
         else:
             print("Tip: Install 'pyperclip' package to enable automatic clipboard copying:")
