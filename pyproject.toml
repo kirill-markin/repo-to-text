@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "repo-to-text"
+version = "0.5.2"
+authors = [
+    { name = "Kirill Markin", email = "markinkirill@gmail.com" },
+]
+description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks. It may be useful to chat with LLM about your code."
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+    "setuptools>=70.0.0",
+    "pathspec>=0.12.1",
+    "argparse>=1.4.0",
+    "PyYAML>=6.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/kirill-markin/repo-to-text"
+Repository = "https://github.com/kirill-markin/repo-to-text"
+
+[project.scripts]
+repo-to-text = "repo_to_text.main:main"
+flatten = "repo_to_text.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.2",
+    "black",
+    "mypy",
+    "isort",
+    "build",
+    "twine",
+]

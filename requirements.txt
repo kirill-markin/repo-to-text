@@ -1,5 +1,0 @@
-setuptools>=70.0.0
-pathspec>=0.12.1
-pytest>=8.2.2
-argparse>=1.4.0
-PyYAML>=6.0.1
