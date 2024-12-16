@@ -1,7 +1,7 @@
 import os
 import shutil
 import logging
-from typing import List
+from typing import List, Set
 
 def setup_logging(debug: bool = False) -> None:
     """Set up logging configuration.
@@ -55,8 +55,8 @@ def remove_empty_dirs(tree_output: str, path: str = '.') -> str:
     """
     logging.debug('Removing empty directories from tree output')
     lines = tree_output.splitlines()
-    non_empty_dirs = set()
-    filtered_lines = []
+    non_empty_dirs: Set[str] = set()
+    filtered_lines: List[str] = []
 
     for line in lines:
         parts = line.strip().split()
@@ -68,7 +68,7 @@ def remove_empty_dirs(tree_output: str, path: str = '.') -> str:
             non_empty_dirs.add(os.path.dirname(full_path))
             filtered_lines.append(line)
     
-    final_lines = []
+    final_lines: List[str] = []
     for line in filtered_lines:
         parts = line.strip().split()
         if parts:

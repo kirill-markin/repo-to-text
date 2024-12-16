@@ -196,7 +196,7 @@ def test_save_repo_to_text_stdout(sample_repo: str) -> None:
 def test_load_ignore_specs_with_cli_patterns(sample_repo: str) -> None:
     """Test loading ignore specs with CLI patterns."""
     cli_patterns = ["*.log", "temp/"]
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo, cli_patterns)
+    _, _, tree_and_content_ignore_spec = load_ignore_specs(sample_repo, cli_patterns)
     
     assert tree_and_content_ignore_spec.match_file("test.log") is True
     assert tree_and_content_ignore_spec.match_file("temp/file.txt") is True
