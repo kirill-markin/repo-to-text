@@ -180,7 +180,7 @@ To install `repo-to-text` locally for development, follow these steps:
 2. Install the package with development dependencies:
 
     ```bash
-    pip install -e .[dev]
+    pip install -e ".[dev]"
     ```
 
 ### Requirements
