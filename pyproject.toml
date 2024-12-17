@@ -41,4 +41,10 @@ dev = [
     "isort",
     "build",
     "twine",
+    "pylint",
+]
+
+[tool.pylint]
+disable = [
+    "C0303",
 ]
