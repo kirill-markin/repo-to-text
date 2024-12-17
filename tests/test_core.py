@@ -1,8 +1,11 @@
+"""Test the core module."""
+
 import os
 import tempfile
 import shutil
-import pytest
 from typing import Generator
+import pytest
+
 from repo_to_text.core.core import (
     get_tree_structure,
     load_ignore_specs,
@@ -20,12 +23,13 @@ def temp_dir() -> Generator[str, None, None]:
     shutil.rmtree(temp_path)
 
 @pytest.fixture
-def sample_repo(temp_dir: str) -> str:
+def sample_repo(tmp_path: str) -> str:
     """Create a sample repository structure for testing."""
+    tmp_path_str = str(tmp_path)
     # Create directories
-    os.makedirs(os.path.join(temp_dir, "src"))
-    os.makedirs(os.path.join(temp_dir, "tests"))
-    
+    os.makedirs(os.path.join(tmp_path_str, "src"))
+    os.makedirs(os.path.join(tmp_path_str, "tests"))
+
     # Create sample files
     files = {
         "README.md": "# Test Project",
@@ -45,14 +49,14 @@ ignore-content:
   - "README.md"
 """
     }
-    
+
     for file_path, content in files.items():
-        full_path = os.path.join(temp_dir, file_path)
+        full_path = os.path.join(tmp_path_str, file_path)
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, "w") as f:
+        with open(full_path, "w", encoding='utf-8') as f:
             f.write(content)
-    
-    return temp_dir
+
+    return tmp_path_str
 
 def test_is_ignored_path() -> None:
     """Test the is_ignored_path function."""
@@ -64,26 +68,26 @@ def test_is_ignored_path() -> None:
 def test_load_ignore_specs(sample_repo: str) -> None:
     """Test loading ignore specifications from files."""
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
-    
+
     assert gitignore_spec is not None
     assert content_ignore_spec is not None
     assert tree_and_content_ignore_spec is not None
-    
+
     # Test gitignore patterns
     assert gitignore_spec.match_file("test.pyc") is True
     assert gitignore_spec.match_file("__pycache__/cache.py") is True
     assert gitignore_spec.match_file(".git/config") is True
-    
+
     # Test content ignore patterns
     assert content_ignore_spec.match_file("README.md") is True
-    
+
     # Test tree and content ignore patterns
     assert tree_and_content_ignore_spec.match_file(".git/config") is True
 
 def test_should_ignore_file(sample_repo: str) -> None:
     """Test file ignoring logic."""
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
-    
+
     # Test various file paths
     assert should_ignore_file(
         ".git/config",
@@ -92,7 +96,7 @@ def test_should_ignore_file(sample_repo: str) -> None:
         content_ignore_spec,
         tree_and_content_ignore_spec
     ) is True
-    
+
     assert should_ignore_file(
         "src/main.py",
         "src/main.py",
@@ -105,7 +109,7 @@ def test_get_tree_structure(sample_repo: str) -> None:
     """Test tree structure generation."""
     gitignore_spec, _, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
     tree_output = get_tree_structure(sample_repo, gitignore_spec, tree_and_content_ignore_spec)
-    
+
     # Basic structure checks
     assert "src" in tree_output
     assert "tests" in tree_output
@@ -113,74 +117,74 @@ def test_get_tree_structure(sample_repo: str) -> None:
     assert "test_main.py" in tree_output
     assert ".git" not in tree_output
 
-def test_remove_empty_dirs(temp_dir: str) -> None:
+def test_remove_empty_dirs(tmp_path: str) -> None:
     """Test removal of empty directories from tree output."""
     # Create test directory structure
-    os.makedirs(os.path.join(temp_dir, "src"))
-    os.makedirs(os.path.join(temp_dir, "empty_dir"))
-    os.makedirs(os.path.join(temp_dir, "tests"))
-    
+    os.makedirs(os.path.join(tmp_path, "src"))
+    os.makedirs(os.path.join(tmp_path, "empty_dir"))
+    os.makedirs(os.path.join(tmp_path, "tests"))
+
     # Create some files
-    with open(os.path.join(temp_dir, "src/main.py"), "w") as f:
+    with open(os.path.join(tmp_path, "src/main.py"), "w", encoding='utf-8') as f:
         f.write("print('test')")
-    with open(os.path.join(temp_dir, "tests/test_main.py"), "w") as f:
+    with open(os.path.join(tmp_path, "tests/test_main.py"), "w", encoding='utf-8') as f:
         f.write("def test(): pass")
-    
+
     # Create a mock tree output that matches the actual tree command format
     tree_output = (
-        f"{temp_dir}\n"
-        f"├── {os.path.join(temp_dir, 'src')}\n"
-        f"│   └── {os.path.join(temp_dir, 'src/main.py')}\n"
-        f"├── {os.path.join(temp_dir, 'empty_dir')}\n"
-        f"└── {os.path.join(temp_dir, 'tests')}\n"
-        f"    └── {os.path.join(temp_dir, 'tests/test_main.py')}\n"
+        f"{tmp_path}\n"
+        f"├── {os.path.join(tmp_path, 'src')}\n"
+        f"│   └── {os.path.join(tmp_path, 'src/main.py')}\n"
+        f"├── {os.path.join(tmp_path, 'empty_dir')}\n"
+        f"└── {os.path.join(tmp_path, 'tests')}\n"
+        f"    └── {os.path.join(tmp_path, 'tests/test_main.py')}\n"
     )
-    
-    filtered_output = remove_empty_dirs(tree_output, temp_dir)
-    
+
+    filtered_output = remove_empty_dirs(tree_output)
+
     # Check that empty_dir is removed but other directories remain
     assert "empty_dir" not in filtered_output
-    assert os.path.join(temp_dir, "src") in filtered_output
-    assert os.path.join(temp_dir, "tests") in filtered_output
-    assert os.path.join(temp_dir, "src/main.py") in filtered_output
-    assert os.path.join(temp_dir, "tests/test_main.py") in filtered_output
+    assert os.path.join(tmp_path, "src") in filtered_output
+    assert os.path.join(tmp_path, "tests") in filtered_output
+    assert os.path.join(tmp_path, "src/main.py") in filtered_output
+    assert os.path.join(tmp_path, "tests/test_main.py") in filtered_output
 
 def test_save_repo_to_text(sample_repo: str) -> None:
     """Test the main save_repo_to_text function."""
     # Create output directory
     output_dir = os.path.join(sample_repo, "output")
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Create .git directory to ensure it's properly ignored
     os.makedirs(os.path.join(sample_repo, ".git"))
-    with open(os.path.join(sample_repo, ".git/config"), "w") as f:
+    with open(os.path.join(sample_repo, ".git/config"), "w", encoding='utf-8') as f:
         f.write("[core]\n\trepositoryformatversion = 0\n")
-    
+
     # Test file output
     output_file = save_repo_to_text(sample_repo, output_dir=output_dir)
     assert os.path.exists(output_file)
     assert os.path.dirname(output_file) == output_dir
-    
+
     # Check file contents
-    with open(output_file, 'r') as f:
+    with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
-        
+
         # Basic content checks
         assert "Directory Structure:" in content
-        
+
         # Check for expected files
         assert "src/main.py" in content
         assert "tests/test_main.py" in content
-        
+
         # Check for file contents
         assert "print('Hello World')" in content
         assert "def test_sample(): pass" in content
-        
+
         # Ensure ignored patterns are not in output
         assert ".git/config" not in content  # Check specific file
         assert "repo-to-text_" not in content
         assert ".repo-to-text-settings.yaml" not in content
-        
+
         # Check that .gitignore content is not included
         assert "*.pyc" not in content
         assert "__pycache__" not in content
@@ -197,14 +201,16 @@ def test_load_ignore_specs_with_cli_patterns(sample_repo: str) -> None:
     """Test loading ignore specs with CLI patterns."""
     cli_patterns = ["*.log", "temp/"]
     _, _, tree_and_content_ignore_spec = load_ignore_specs(sample_repo, cli_patterns)
-    
+
     assert tree_and_content_ignore_spec.match_file("test.log") is True
     assert tree_and_content_ignore_spec.match_file("temp/file.txt") is True
     assert tree_and_content_ignore_spec.match_file("normal.txt") is False
 
 def test_load_ignore_specs_without_gitignore(temp_dir: str) -> None:
     """Test loading ignore specs when .gitignore is missing."""
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(temp_dir)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        temp_dir
+    )
     assert gitignore_spec is None
     assert content_ignore_spec is None
     assert tree_and_content_ignore_spec is not None
@@ -214,9 +220,9 @@ def test_get_tree_structure_with_special_chars(temp_dir: str) -> None:
     # Create files with special characters
     special_dir = os.path.join(temp_dir, "special chars")
     os.makedirs(special_dir)
-    with open(os.path.join(special_dir, "file with spaces.txt"), "w") as f:
+    with open(os.path.join(special_dir, "file with spaces.txt"), "w", encoding='utf-8') as f:
         f.write("test")
-    
+
     tree_output = get_tree_structure(temp_dir)
     assert "special chars" in tree_output
     assert "file with spaces.txt" in tree_output
@@ -224,7 +230,7 @@ def test_get_tree_structure_with_special_chars(temp_dir: str) -> None:
 def test_should_ignore_file_edge_cases(sample_repo: str) -> None:
     """Test edge cases for should_ignore_file function."""
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
-    
+
     # Test with dot-prefixed paths
     assert should_ignore_file(
         "./src/main.py",
@@ -233,7 +239,7 @@ def test_should_ignore_file_edge_cases(sample_repo: str) -> None:
         content_ignore_spec,
         tree_and_content_ignore_spec
     ) is False
-    
+
     # Test with absolute paths
     abs_path = os.path.join(sample_repo, "src/main.py")
     rel_path = "src/main.py"
@@ -252,9 +258,9 @@ def test_save_repo_to_text_with_binary_files(temp_dir: str) -> None:
     binary_content = b'\x00\x01\x02\x03'
     with open(binary_path, "wb") as f:
         f.write(binary_content)
-    
+
     output = save_repo_to_text(temp_dir, to_stdout=True)
-    
+
     # Check that the binary file is listed in the structure
     assert "binary.bin" in output
     # Check that the file content section exists with raw binary content
@@ -264,13 +270,13 @@ def test_save_repo_to_text_with_binary_files(temp_dir: str) -> None:
 def test_save_repo_to_text_custom_output_dir(temp_dir: str) -> None:
     """Test save_repo_to_text with custom output directory."""
     # Create a simple file structure
-    with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+    with open(os.path.join(temp_dir, "test.txt"), "w", encoding='utf-8') as f:
         f.write("test content")
-    
+
     # Create custom output directory
     output_dir = os.path.join(temp_dir, "custom_output")
     output_file = save_repo_to_text(temp_dir, output_dir=output_dir)
-    
+
     assert os.path.exists(output_file)
     assert os.path.dirname(output_file) == output_dir
     assert output_file.startswith(output_dir)

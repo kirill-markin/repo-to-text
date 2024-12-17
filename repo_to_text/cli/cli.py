@@ -1,3 +1,7 @@
+"""
+CLI for repo-to-text
+"""
+
 import argparse
 import textwrap
 import os
@@ -12,8 +16,11 @@ def create_default_settings_file() -> None:
     """Create a default .repo-to-text-settings.yaml file."""
     settings_file = '.repo-to-text-settings.yaml'
     if os.path.exists(settings_file):
-        raise FileExistsError(f"The settings file '{settings_file}' already exists. Please remove it or rename it if you want to create a new default settings file.")
-    
+        raise FileExistsError(
+            f"The settings file '{settings_file}' already exists. "
+            "Please remove it or rename it if you want to create a new default settings file."
+        )
+
     default_settings = textwrap.dedent("""\
         # Details: https://github.com/kirill-markin/repo-to-text
         # Syntax: gitignore rules
@@ -32,7 +39,7 @@ def create_default_settings_file() -> None:
           - "README.md"
           - "LICENSE"
     """)
-    with open('.repo-to-text-settings.yaml', 'w') as f:
+    with open('.repo-to-text-settings.yaml', 'w', encoding='utf-8') as f:
         f.write(default_settings)
     print("Default .repo-to-text-settings.yaml created.")
 
@@ -42,13 +49,25 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed command line arguments
     """
-    parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+    parser = argparse.ArgumentParser(
+        description='Convert repository structure and contents to text'
+    )
     parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
-    parser.add_argument('--create-settings', '--init', action='store_true', help='Create default .repo-to-text-settings.yaml file')
+    parser.add_argument(
+        '--create-settings',
+        '--init',
+        action='store_true',
+        help='Create default .repo-to-text-settings.yaml file'
+    )
     parser.add_argument('--stdout', action='store_true', help='Output to stdout instead of a file')
-    parser.add_argument('--ignore-patterns', nargs='*', help="List of files or directories to ignore in both tree and content sections. Supports wildcards (e.g., '*').")
+    parser.add_argument(
+        '--ignore-patterns',
+        nargs='*',
+        help="List of files or directories to ignore in both tree and content sections. "
+        "Supports wildcards (e.g., '*')."
+    )
     return parser.parse_args()
 
 def main() -> NoReturn:
@@ -60,7 +79,7 @@ def main() -> NoReturn:
     args = parse_args()
     setup_logging(debug=args.debug)
     logging.debug('repo-to-text script started')
-    
+
     try:
         if args.create_settings:
             create_default_settings_file()
@@ -72,9 +91,9 @@ def main() -> NoReturn:
                 to_stdout=args.stdout,
                 cli_ignore_patterns=args.ignore_patterns
             )
-        
+
         logging.debug('repo-to-text script finished')
         sys.exit(0)
-    except Exception as e:
-        logging.error(f'Error occurred: {str(e)}')
-        sys.exit(1) 
+    except (FileNotFoundError, FileExistsError, PermissionError, OSError) as e:
+        logging.error('Error occurred: %s', str(e))
+        sys.exit(1)

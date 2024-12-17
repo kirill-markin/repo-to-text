@@ -1,9 +1,11 @@
+"""Test the CLI module."""
+
 import os
-import pytest
 import tempfile
 import shutil
 from typing import Generator
 from unittest.mock import patch, MagicMock
+import pytest
 from repo_to_text.cli.cli import (
     create_default_settings_file,
     parse_args,
@@ -48,11 +50,11 @@ def test_create_default_settings_file(temp_dir: str) -> None:
     """Test creation of default settings file."""
     os.chdir(temp_dir)
     create_default_settings_file()
-    
+
     settings_file = '.repo-to-text-settings.yaml'
     assert os.path.exists(settings_file)
-    
-    with open(settings_file, 'r') as f:
+
+    with open(settings_file, 'r', encoding='utf-8') as f:
         content = f.read()
         assert 'gitignore-import-and-ignore: True' in content
         assert 'ignore-tree-and-content:' in content
@@ -63,7 +65,7 @@ def test_create_default_settings_file_already_exists(temp_dir: str) -> None:
     os.chdir(temp_dir)
     # Create the file first
     create_default_settings_file()
-    
+
     # Try to create it again
     with pytest.raises(FileExistsError) as exc_info:
         create_default_settings_file()
@@ -94,7 +96,10 @@ def test_main_create_settings(mock_create_settings: MagicMock) -> None:
 
 @patch('repo_to_text.cli.cli.setup_logging')
 @patch('repo_to_text.cli.cli.create_default_settings_file')
-def test_main_with_debug_logging(mock_create_settings: MagicMock, mock_setup_logging: MagicMock) -> None:
+def test_main_with_debug_logging(
+    mock_create_settings: MagicMock,
+    mock_setup_logging: MagicMock
+) -> None:
     """Test main function with debug logging enabled."""
     with patch('sys.argv', ['repo-to-text', '--debug', '--create-settings']):
         with pytest.raises(SystemExit) as exc_info:
@@ -104,4 +109,4 @@ def test_main_with_debug_logging(mock_create_settings: MagicMock, mock_setup_log
         mock_create_settings.assert_called_once()
 
 if __name__ == "__main__":
-    pytest.main([__file__]) 
+    pytest.main([__file__])
