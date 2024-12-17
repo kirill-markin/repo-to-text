@@ -12,6 +12,8 @@ from repo_to_text.cli.cli import (
     main
 )
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def temp_dir() -> Generator[str, None, None]:
     """Create a temporary directory for testing."""
