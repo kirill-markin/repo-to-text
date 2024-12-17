@@ -4,14 +4,14 @@ Core functionality for repo-to-text
 
 import os
 import subprocess
-from typing import Tuple, Optional, List, Dict, Any
+from typing import Tuple, Optional, List, Dict, Any, Set
 from datetime import datetime, timezone
 import logging
 import yaml
 import pathspec
 from pathspec import PathSpec
 
-from ..utils.utils import check_tree_command, is_ignored_path, remove_empty_dirs
+from ..utils.utils import check_tree_command, is_ignored_path
 
 def get_tree_structure(
         path: str = '.',
@@ -26,7 +26,7 @@ def get_tree_structure(
         tree_and_content_ignore_spec: PathSpec object for tree and content ignore patterns
         
     Returns:
-        str: Generated tree structure
+        str: Generated tree structure with empty directories and ignored files removed
     """
     if not check_tree_command():
         return ""
@@ -47,9 +47,14 @@ def get_tree_structure(
     logging.debug(
         'Filtering tree output based on .gitignore and ignore-tree-and-content specification'
     )
-    filtered_lines: List[str] = []
+    lines: List[str] = tree_output.splitlines()
+    non_empty_dirs: Set[str] = set()
+    current_path: List[str] = []
 
-    for line in tree_output.splitlines():
+    for line in lines:
+        indent_level = len(line) - len(line.lstrip('│ ├└'))
+        current_path = current_path[:indent_level]
+
         idx = line.find('./')
         if idx == -1:
             idx = line.find(path)
@@ -63,24 +68,66 @@ def get_tree_structure(
 
         relative_path = os.path.relpath(full_path, path)
         relative_path = relative_path.replace(os.sep, '/')
-        if os.path.isdir(full_path):
-            relative_path += '/'
 
-        if not should_ignore_file(
+        # Skip if file should be ignored
+        if should_ignore_file(
             full_path,
             relative_path,
             gitignore_spec,
             None,
             tree_and_content_ignore_spec
         ):
+            logging.debug('Ignored: %s', relative_path)
+            continue
+
+        # If this is a file, mark all parent directories as non-empty
+        if not os.path.isdir(full_path):
+            dir_path = os.path.dirname(relative_path)
+            while dir_path:
+                non_empty_dirs.add(dir_path)
+                dir_path = os.path.dirname(dir_path)
+
+    # Second pass: build filtered output
+    filtered_lines: List[str] = []
+    current_path = []
+
+    for line in lines:
+        indent_level = len(line) - len(line.lstrip('│ ├└'))
+        current_path = current_path[:indent_level]
+
+        # Always include root path
+        if indent_level == 0:
+            filtered_lines.append(line)
+            continue
+
+        idx = line.find('./')
+        if idx == -1:
+            idx = line.find(path)
+        if idx != -1:
+            full_path = line[idx:].strip()
+        else:
+            continue
+
+        relative_path = os.path.relpath(full_path, path)
+        relative_path = relative_path.replace(os.sep, '/')
+
+        # Skip if file should be ignored
+        if should_ignore_file(
+            full_path,
+            relative_path,
+            gitignore_spec,
+            None,
+            tree_and_content_ignore_spec
+        ):
+            continue
+
+        # Include line if it's a file or a non-empty directory
+        if not os.path.isdir(full_path) or os.path.dirname(relative_path) in non_empty_dirs:
             display_line = line.replace('./', '', 1)
             filtered_lines.append(display_line)
-        else:
-            logging.debug('Ignored: %s', relative_path)
 
     filtered_tree_output = '\n'.join(filtered_lines)
     logging.debug('Filtered tree structure:\n%s', filtered_tree_output)
-    logging.debug('Tree structure filtering complete')
     return filtered_tree_output
 
 def load_ignore_specs(
@@ -204,7 +251,6 @@ def save_repo_to_text(
     tree_structure: str = get_tree_structure(
         path, gitignore_spec, tree_and_content_ignore_spec
     )
-    tree_structure = remove_empty_dirs(tree_structure)
     logging.debug('Final tree structure to be written: %s', tree_structure)
 
     timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-UTC')

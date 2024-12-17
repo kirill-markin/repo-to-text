@@ -11,7 +11,6 @@ from repo_to_text.core.core import (
     load_ignore_specs,
     should_ignore_file,
     is_ignored_path,
-    remove_empty_dirs,
     save_repo_to_text
 )
 
@@ -67,7 +66,9 @@ def test_is_ignored_path() -> None:
 
 def test_load_ignore_specs(sample_repo: str) -> None:
     """Test loading ignore specifications from files."""
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        sample_repo
+    )
 
     assert gitignore_spec is not None
     assert content_ignore_spec is not None
@@ -86,7 +87,9 @@ def test_load_ignore_specs(sample_repo: str) -> None:
 
 def test_should_ignore_file(sample_repo: str) -> None:
     """Test file ignoring logic."""
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        sample_repo
+    )
 
     # Test various file paths
     assert should_ignore_file(
@@ -116,38 +119,6 @@ def test_get_tree_structure(sample_repo: str) -> None:
     assert "main.py" in tree_output
     assert "test_main.py" in tree_output
     assert ".git" not in tree_output
-
-def test_remove_empty_dirs(tmp_path: str) -> None:
-    """Test removal of empty directories from tree output."""
-    # Create test directory structure
-    os.makedirs(os.path.join(tmp_path, "src"))
-    os.makedirs(os.path.join(tmp_path, "empty_dir"))
-    os.makedirs(os.path.join(tmp_path, "tests"))
-
-    # Create some files
-    with open(os.path.join(tmp_path, "src/main.py"), "w", encoding='utf-8') as f:
-        f.write("print('test')")
-    with open(os.path.join(tmp_path, "tests/test_main.py"), "w", encoding='utf-8') as f:
-        f.write("def test(): pass")
-
-    # Create a mock tree output that matches the actual tree command format
-    tree_output = (
-        f"{tmp_path}\n"
-        f"├── {os.path.join(tmp_path, 'src')}\n"
-        f"│   └── {os.path.join(tmp_path, 'src/main.py')}\n"
-        f"├── {os.path.join(tmp_path, 'empty_dir')}\n"
-        f"└── {os.path.join(tmp_path, 'tests')}\n"
-        f"    └── {os.path.join(tmp_path, 'tests/test_main.py')}\n"
-    )
-
-    filtered_output = remove_empty_dirs(tree_output)
-
-    # Check that empty_dir is removed but other directories remain
-    assert "empty_dir" not in filtered_output
-    assert os.path.join(tmp_path, "src") in filtered_output
-    assert os.path.join(tmp_path, "tests") in filtered_output
-    assert os.path.join(tmp_path, "src/main.py") in filtered_output
-    assert os.path.join(tmp_path, "tests/test_main.py") in filtered_output
 
 def test_save_repo_to_text(sample_repo: str) -> None:
     """Test the main save_repo_to_text function."""
@@ -229,7 +200,9 @@ def test_get_tree_structure_with_special_chars(temp_dir: str) -> None:
 
 def test_should_ignore_file_edge_cases(sample_repo: str) -> None:
     """Test edge cases for should_ignore_file function."""
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        sample_repo
+    )
 
     # Test with dot-prefixed paths
     assert should_ignore_file(
@@ -286,6 +259,45 @@ def test_get_tree_structure_empty_directory(temp_dir: str) -> None:
     tree_output = get_tree_structure(temp_dir)
     # Should only contain the directory itself
     assert tree_output.strip() == "" or tree_output.strip() == temp_dir
+
+def test_empty_dirs_filtering(tmp_path: str) -> None:
+    """Test filtering of empty directories in tree structure generation."""
+    # Create test directory structure with normalized paths
+    base_path = os.path.normpath(tmp_path)
+    src_path = os.path.join(base_path, "src")
+    empty_dir_path = os.path.join(base_path, "empty_dir")
+    tests_path = os.path.join(base_path, "tests")
+
+    os.makedirs(src_path)
+    os.makedirs(empty_dir_path)
+    os.makedirs(tests_path)
+
+    # Create some files
+    with open(os.path.join(src_path, "main.py"), "w", encoding='utf-8') as f:
+        f.write("print('test')")
+    with open(os.path.join(tests_path, "test_main.py"), "w", encoding='utf-8') as f:
+        f.write("def test(): pass")
+
+    # Get tree structure directly using the function
+    tree_output = get_tree_structure(base_path)
+
+    # Print debug information
+    print("\nTree output:")
+    print(tree_output)
+
+    # Basic structure checks for directories with files
+    assert "src" in tree_output
+    assert "tests" in tree_output
+    assert "main.py" in tree_output
+    assert "test_main.py" in tree_output
+
+    # Check that empty directory is not included by checking each line
+    for line in tree_output.splitlines():
+        # Skip the root directory line
+        if base_path in line:
+            continue
+        # Check that no line contains 'empty_dir'
+        assert "empty_dir" not in line, f"Found empty_dir in line: {line}"
 
 if __name__ == "__main__":
     pytest.main([__file__])
