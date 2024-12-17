@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "repo-to-text"
-version = "0.5.3"
+version = "0.5.4"
 authors = [
     { name = "Kirill Markin", email = "markinkirill@gmail.com" },
 ]
