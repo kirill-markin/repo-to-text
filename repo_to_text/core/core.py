@@ -134,48 +134,52 @@ def load_ignore_specs(
         path: str = '.',
         cli_ignore_patterns: Optional[List[str]] = None
     ) -> Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]:
-    """Load ignore specifications from various sources.
-    
-    Args:
-        path: Base directory path
-        cli_ignore_patterns: List of patterns from command line
-        
-    Returns:
-        Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]: Tuple of gitignore_spec, 
-        content_ignore_spec, and tree_and_content_ignore_spec
-    """
+    """Load ignore specifications from various sources."""
     gitignore_spec = None
     content_ignore_spec = None
     tree_and_content_ignore_list: List[str] = []
     use_gitignore = True
 
-    repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
-    if os.path.exists(repo_settings_path):
-        logging.debug('Loading .repo-to-text-settings.yaml from path: %s', repo_settings_path)
-        with open(repo_settings_path, 'r', encoding='utf-8') as f:
-            settings: Dict[str, Any] = yaml.safe_load(f)
-            use_gitignore = settings.get('gitignore-import-and-ignore', True)
-            if 'ignore-content' in settings:
-                content_ignore_spec: Optional[PathSpec] = pathspec.PathSpec.from_lines(
-                    'gitwildmatch', settings['ignore-content']
-                )
-            if 'ignore-tree-and-content' in settings:
-                tree_and_content_ignore_list.extend(settings.get('ignore-tree-and-content', []))
+    settings = load_settings_from_file(path)
+    if settings:
+        use_gitignore = settings.get('gitignore-import-and-ignore', True)
+        content_ignore_spec = create_content_ignore_spec(settings)
+        tree_and_content_ignore_list.extend(settings.get('ignore-tree-and-content', []))
 
     if cli_ignore_patterns:
         tree_and_content_ignore_list.extend(cli_ignore_patterns)
 
     if use_gitignore:
-        gitignore_path = os.path.join(path, '.gitignore')
-        if os.path.exists(gitignore_path):
-            logging.debug('Loading .gitignore from path: %s', gitignore_path)
-            with open(gitignore_path, 'r', encoding='utf-8') as f:
-                gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
+        gitignore_spec = load_gitignore_spec(path)
 
     tree_and_content_ignore_spec = pathspec.PathSpec.from_lines(
         'gitwildmatch', tree_and_content_ignore_list
     )
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
+
+def load_settings_from_file(path: str) -> Optional[Dict[str, Any]]:
+    """Load settings from the .repo-to-text-settings.yaml file."""
+    repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
+    if os.path.exists(repo_settings_path):
+        logging.debug('Loading .repo-to-text-settings.yaml from path: %s', repo_settings_path)
+        with open(repo_settings_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    return None
+
+def create_content_ignore_spec(settings: Dict[str, Any]) -> Optional[PathSpec]:
+    """Create content ignore spec from settings."""
+    if 'ignore-content' in settings:
+        return pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-content'])
+    return None
+
+def load_gitignore_spec(path: str) -> Optional[PathSpec]:
+    """Load gitignore spec from the .gitignore file."""
+    gitignore_path = os.path.join(path, '.gitignore')
+    if os.path.exists(gitignore_path):
+        logging.debug('Loading .gitignore from path: %s', gitignore_path)
+        with open(gitignore_path, 'r', encoding='utf-8') as f:
+            return pathspec.PathSpec.from_lines('gitwildmatch', f)
+    return None
 
 def should_ignore_file(
     file_path: str,
