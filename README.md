@@ -1,6 +1,6 @@
 # Repository to Text Conversion: repo-to-text command
 
-`repo-to-text` is an open-source project that converts the structure and contents of a directory (repository) into a single text file. By executing a simple command in the terminal, this tool generates a text representation of the directory, including the output of the `tree` command and the contents of each file, formatted for easy reading and sharing. This can be very useful for development and debugging with LLM.
+`repo-to-text` converts a directory's structure and contents into a single text file. Run it from the terminal to generate a formatted text representation that includes the directory tree and file contents. This makes it easy to share code with LLMs for development and debugging.
 
 ## Example of Repository to Text Conversion
 
@@ -8,15 +8,29 @@
 
 The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo-to-text_2024-06-09-08-06-31-UTC.txt).
 
-The same text will appear in your clipboard. You can paste it into a dialog with the LLM and start communicating.
+## Quick Start
+
+Run the following command in the terminal:
+
+```bash
+pip install repo-to-text
+```
+
+then open your repository and run the following command:
+
+```bash
+repo-to-text
+```
+
+Resulting file will be saved in the current directory.
 
 ## Features
 
-- Generates a text representation of a directory's structure.
-- Includes the output of the `tree` command.
-- Saves the contents of each file, encapsulated in markdown code blocks.
-- Copies the generated text representation to the clipboard for easy sharing.
-- Easy to install and use via `pip`.
+- Converts directory structure to text
+- Shows file tree
+- Includes file contents
+- Copies output to clipboard
+- Simple pip installation
 
 ## Installation
 
