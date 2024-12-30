@@ -98,6 +98,44 @@ You can customize the behavior of `repo-to-text` with the following options:
 
   This will write the output directly to `myfile.txt` instead of creating a timestamped file.
 
+## Docker Usage
+
+### Building and Running
+
+1. Build the container:
+
+   ```bash
+   docker compose build
+   ```
+
+2. Start a shell session:
+
+   ```bash
+   docker compose run --rm repo-to-text
+   ```
+
+Once in the shell, you can run `repo-to-text`:
+
+- Process current directory:
+
+  ```bash
+  repo-to-text
+  ```
+
+- Process specific directory:
+
+  ```bash
+  repo-to-text /home/user/myproject
+  ```
+
+- Use with options:
+
+  ```bash
+  repo-to-text --output-dir /home/user/output
+  ```
+
+The container mounts your home directory at `/home/user`, allowing access to all your projects.
+
 ## Settings
 
 `repo-to-text` also supports configuration via a `.repo-to-text-settings.yaml` file. By default, the tool works without this file, but you can use it to customize what gets included in the final text file.

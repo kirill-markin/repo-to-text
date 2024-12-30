@@ -1,10 +1,13 @@
 services:
   repo-to-text:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
       - ${HOME:-/home/user}:/home/user
     working_dir: /home/user
     environment:
       - HOME=/home/user
     user: "${UID:-1000}:${GID:-1000}"
+    init: true
     entrypoint: ["/bin/bash"]
