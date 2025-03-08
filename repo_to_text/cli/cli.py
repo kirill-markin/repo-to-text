@@ -38,6 +38,7 @@ def create_default_settings_file() -> None:
         ignore-content:
           - "README.md"
           - "LICENSE"
+          - "package-lock.json"
     """)
     with open('.repo-to-text-settings.yaml', 'w', encoding='utf-8') as f:
         f.write(default_settings)
