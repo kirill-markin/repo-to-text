@@ -48,6 +48,7 @@ ignore-tree-and-content:
   - ".repo-to-text-settings.yaml"
 ignore-content:
   - "README.md"
+  - "package-lock.json"
 """
     }
 
