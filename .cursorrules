@@ -1,0 +1,45 @@
+# repo-to-text
+
+## Project Overview
+`repo-to-text` is a command-line tool that converts a directory's structure and contents into a single text file. 
+It generates a formatted XML representation that includes the directory tree and file contents, making it easy to share code with LLMs for development and debugging.
+
+## Usage
+- Install: `pip install repo-to-text`
+- Run: `cd <your-repo-dir> && repo-to-text`
+- The result will be saved in the current directory as `repo-to-text_YYYY-MM-DD-HH-MM-SS-UTC.txt`
+
+## Common Commands
+- `repo-to-text` - Process current directory
+- `repo-to-text /path/to/dir` - Process specific directory
+- `repo-to-text --output-dir /path/to/output` - Specify output directory
+- `repo-to-text --stdout > myfile.txt` - Output to stdout and redirect to file
+- `repo-to-text --create-settings` - Create a default settings file
+
+## Output Format
+The tool generates an XML-structured output with:
+- Root `<repo-to-text>` tag
+- Directory structure in `<directory_structure>` tags
+- File contents in `<content full_path="...">` tags
+
+## Configuration
+- Create `.repo-to-text-settings.yaml` at the root of your project
+- Use gitignore-style rules to specify what files to ignore
+- Configure what files to include in the tree and content sections
+
+## Development
+- Python >= 3.6
+- Install dev dependencies: `pip install -e ".[dev]"`
+- Run tests: `pytest` 
+
+## Testing
+- Tests are located in the `tests/` directory
+- Main test files:
+  - `tests/test_core.py` - Tests for core functionality
+  - `tests/test_cli.py` - Tests for command-line interface
+  - `tests/test_utils.py` - Tests for utility functions
+- Run all tests: `pytest`
+- Run specific test file: `pytest tests/test_core.py`
+- Run with coverage: `pytest --cov=repo_to_text`
+- Test temporary directories are created and cleaned up automatically
+- Binary file handling is tested with mock binary data 

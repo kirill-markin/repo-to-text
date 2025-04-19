@@ -30,11 +30,11 @@ def create_default_settings_file() -> None:
         gitignore-import-and-ignore: True
 
         # Ignore files and directories for tree
-        # and "Contents of ..." sections
+        # and contents sections (<content full_path="...">...</content>)
         ignore-tree-and-content:
           - ".repo-to-text-settings.yaml"
 
-        # Ignore files and directories for "Contents of ..." section
+        # Ignore files and directories for contents sections
         ignore-content:
           - "README.md"
           - "LICENSE"

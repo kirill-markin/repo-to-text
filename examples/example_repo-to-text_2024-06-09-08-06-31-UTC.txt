@@ -1,225 +1,689 @@
+<repo-to-text>
 Directory: repo-to-text
 
 Directory Structure:
-```
+<directory_structure>
 .
 ├── .gitignore
+├── .cursorignore
+├── Dockerfile
 ├── LICENSE
 ├── README.md
-├── repo_to_text
+├── docker-compose.yaml
+├── pyproject.toml
 │   ├── repo_to_text/__init__.py
-│   └── repo_to_text/main.py
-├── requirements.txt
-└── tests
+│   ├── repo_to_text/cli
+│   │   ├── repo_to_text/cli/__init__.py
+│   │   └── repo_to_text/cli/cli.py
+│   ├── repo_to_text/core
+│   │   ├── repo_to_text/core/__init__.py
+│   │   └── repo_to_text/core/core.py
+│   ├── repo_to_text/main.py
+│   └── repo_to_text/utils
+│       ├── repo_to_text/utils/__init__.py
+│       └── repo_to_text/utils/utils.py
     ├── tests/__init__.py
-    └── tests/test_main.py
-```
+    ├── tests/test_cli.py
+    ├── tests/test_core.py
+    └── tests/test_utils.py
+</directory_structure>
 
-Contents of requirements.txt:
-```
-setuptools==70.0.0
-pathspec==0.12.1
-pytest==8.2.2
-argparse==1.4.0
-pyperclip==1.8.2
-PyYAML==6.0.1
+<content full_path=".cursorignore">
+examples/*
 
-```
+</content>
 
-Contents of repo_to_text/__init__.py:
-```
+<content full_path="docker-compose.yaml">
+services:
+  repo-to-text:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ${HOME:-/home/user}:/home/user
+    working_dir: /home/user
+    environment:
+      - HOME=/home/user
+    user: "${UID:-1000}:${GID:-1000}"
+    init: true
+    entrypoint: ["/bin/bash"]
+
+</content>
+
+<content full_path="Dockerfile">
+FROM python:3.12-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Create non-root user
+RUN useradd -m -s /bin/bash user
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tree \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy all necessary files for package installation
+COPY pyproject.toml README.md ./
+
+# Copy the package source
+COPY repo_to_text ./repo_to_text
+
+# Install the package
+RUN pip install --no-cache-dir -e .
+
+# Copy remaining files
+COPY . .
+
+# Set default user
+USER user
+
+ENTRYPOINT ["repo-to-text"]
+
+</content>
+
+<content full_path="pyproject.toml">
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "repo-to-text"
+version = "0.5.4"
+authors = [
+    { name = "Kirill Markin", email = "markinkirill@gmail.com" },
+]
+description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks. It may be useful to chat with LLM about your code."
+readme = "README.md"
+requires-python = ">=3.6"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+    "setuptools>=70.0.0",
+    "pathspec>=0.12.1",
+    "argparse>=1.4.0",
+    "PyYAML>=6.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/kirill-markin/repo-to-text"
+Repository = "https://github.com/kirill-markin/repo-to-text"
+
+[project.scripts]
+repo-to-text = "repo_to_text.main:main"
+flatten = "repo_to_text.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.2",
+    "black",
+    "mypy",
+    "isort",
+    "build",
+    "twine",
+    "pylint",
+]
+
+[tool.pylint]
+disable = [
+    "C0303",
+]
+
+</content>
+
+<content full_path="repo_to_text/__init__.py">
+"""This is the main package for the repo_to_text package."""
+
 __author__ = 'Kirill Markin'
 __email__ = 'markinkirill@gmail.com'
 
-```
+</content>
 
-Contents of repo_to_text/main.py:
-```
+<content full_path="repo_to_text/main.py">
+"""This is the main entry point for the repo_to_text package."""
+
+from repo_to_text.cli.cli import main
+
+if __name__ == '__main__':
+    main()
+
+</content>
+
+<content full_path="repo_to_text/core/__init__.py">
+"""This module contains the core functionality of the repo_to_text package."""
+
+from .core import get_tree_structure, load_ignore_specs, should_ignore_file, save_repo_to_text
+
+__all__ = ['get_tree_structure', 'load_ignore_specs', 'should_ignore_file', 'save_repo_to_text'] 
+
+</content>
+
+<content full_path="repo_to_text/core/core.py">
+"""
+Core functionality for repo-to-text
+"""
+
 import os
 import subprocess
-import pathspec
+from typing import Tuple, Optional, List, Dict, Any, Set
+from datetime import datetime, timezone
+from importlib.machinery import ModuleSpec
 import logging
-import argparse
 import yaml
-from datetime import datetime
-import pyperclip
+import pathspec
+from pathspec import PathSpec
 
-def setup_logging(debug=False):
-    logging_level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
+from ..utils.utils import check_tree_command, is_ignored_path
 
-def get_tree_structure(path='.', gitignore_spec=None, tree_and_content_ignore_spec=None) -> str:
-    logging.debug(f'Generating tree structure for path: {path}')
-    result = subprocess.run(['tree', '-a', '-f', '--noreport', path], stdout=subprocess.PIPE)
-    tree_output = result.stdout.decode('utf-8')
-    logging.debug(f'Tree output generated: {tree_output}')
+def get_tree_structure(
+        path: str = '.',
+        gitignore_spec: Optional[PathSpec] = None,
+        tree_and_content_ignore_spec: Optional[PathSpec] = None
+    ) -> str:
+    """Generate tree structure of the directory."""
+    if not check_tree_command():
+        return ""
+
+    logging.debug('Generating tree structure for path: %s', path)
+    tree_output = run_tree_command(path)
+    logging.debug('Tree output generated:\n%s', tree_output)
 
     if not gitignore_spec and not tree_and_content_ignore_spec:
         logging.debug('No .gitignore or ignore-tree-and-content specification found')
         return tree_output
 
-    logging.debug('Filtering tree output based on .gitignore and ignore-tree-and-content specification')
-    filtered_lines = []
-    for line in tree_output.splitlines():
-        parts = line.strip().split()
-        if parts:
-            full_path = parts[-1]
-            relative_path = os.path.relpath(full_path, path)
-            if not should_ignore_file(full_path, relative_path, gitignore_spec, None, tree_and_content_ignore_spec):
-                filtered_lines.append(line.replace('./', '', 1))
-    
-    logging.debug('Tree structure filtering complete')
-    return '\n'.join(filtered_lines)
+    logging.debug('Filtering tree output based on ignore specifications')
+    return filter_tree_output(tree_output, path, gitignore_spec, tree_and_content_ignore_spec)
 
-def load_ignore_specs(path='.'):
+def run_tree_command(path: str) -> str:
+    """Run the tree command and return its output."""
+    result = subprocess.run(
+        ['tree', '-a', '-f', '--noreport', path],
+        stdout=subprocess.PIPE,
+        check=True
+    )
+    return result.stdout.decode('utf-8')
+
+def filter_tree_output(
+        tree_output: str,
+        path: str,
+        gitignore_spec: Optional[PathSpec],
+        tree_and_content_ignore_spec: Optional[PathSpec]
+    ) -> str:
+    """Filter the tree output based on ignore specifications."""
+    lines: List[str] = tree_output.splitlines()
+    non_empty_dirs: Set[str] = set()
+
+    filtered_lines = [
+        process_line(line, path, gitignore_spec, tree_and_content_ignore_spec, non_empty_dirs)
+        for line in lines
+    ]
+
+    filtered_tree_output = '\n'.join(filter(None, filtered_lines))
+    logging.debug('Filtered tree structure:\n%s', filtered_tree_output)
+    return filtered_tree_output
+
+def process_line(
+        line: str,
+        path: str,
+        gitignore_spec: Optional[PathSpec],
+        tree_and_content_ignore_spec: Optional[PathSpec],
+        non_empty_dirs: Set[str]
+    ) -> Optional[str]:
+    """Process a single line of the tree output."""
+    full_path = extract_full_path(line, path)
+    if not full_path or full_path == '.':
+        return None
+
+    relative_path = os.path.relpath(full_path, path).replace(os.sep, '/')
+
+    if should_ignore_file(
+        full_path,
+        relative_path,
+        gitignore_spec,
+        None,
+        tree_and_content_ignore_spec
+    ):
+        logging.debug('Ignored: %s', relative_path)
+        return None
+
+    if not os.path.isdir(full_path):
+        mark_non_empty_dirs(relative_path, non_empty_dirs)
+
+    if not os.path.isdir(full_path) or os.path.dirname(relative_path) in non_empty_dirs:
+        return line.replace('./', '', 1)
+    return None
+
+def extract_full_path(line: str, path: str) -> Optional[str]:
+    """Extract the full path from a line of tree output."""
+    idx = line.find('./')
+    if idx == -1:
+        idx = line.find(path)
+    return line[idx:].strip() if idx != -1 else None
+
+def mark_non_empty_dirs(relative_path: str, non_empty_dirs: Set[str]) -> None:
+    """Mark all parent directories of a file as non-empty."""
+    dir_path = os.path.dirname(relative_path)
+    while dir_path:
+        non_empty_dirs.add(dir_path)
+        dir_path = os.path.dirname(dir_path)
+
+def load_ignore_specs(
+        path: str = '.',
+        cli_ignore_patterns: Optional[List[str]] = None
+    ) -> Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]:
+    """Load ignore specifications from various sources.
+    
+    Args:
+        path: Base directory path
+        cli_ignore_patterns: List of patterns from command line
+        
+    Returns:
+        Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]: Tuple of gitignore_spec, 
+        content_ignore_spec, and tree_and_content_ignore_spec
+    """
     gitignore_spec = None
     content_ignore_spec = None
-    tree_and_content_ignore_spec = None
+    tree_and_content_ignore_list: List[str] = []
     use_gitignore = True
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
     if os.path.exists(repo_settings_path):
-        logging.debug(f'Loading .repo-to-text-settings.yaml from path: {repo_settings_path}')
-        with open(repo_settings_path, 'r') as f:
-            settings = yaml.safe_load(f)
+        logging.debug('Loading .repo-to-text-settings.yaml from path: %s', repo_settings_path)
+        with open(repo_settings_path, 'r', encoding='utf-8') as f:
+            settings: Dict[str, Any] = yaml.safe_load(f)
             use_gitignore = settings.get('gitignore-import-and-ignore', True)
             if 'ignore-content' in settings:
-                content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-content'])
+                content_ignore_spec: Optional[PathSpec] = pathspec.PathSpec.from_lines(
+                    'gitwildmatch', settings['ignore-content']
+                )
             if 'ignore-tree-and-content' in settings:
-                tree_and_content_ignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', settings['ignore-tree-and-content'])
+                tree_and_content_ignore_list.extend(settings.get('ignore-tree-and-content', []))
+
+    if cli_ignore_patterns:
+        tree_and_content_ignore_list.extend(cli_ignore_patterns)
 
     if use_gitignore:
         gitignore_path = os.path.join(path, '.gitignore')
         if os.path.exists(gitignore_path):
-            logging.debug(f'Loading .gitignore from path: {gitignore_path}')
-            with open(gitignore_path, 'r') as f:
+            logging.debug('Loading .gitignore from path: %s', gitignore_path)
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
                 gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
 
+    tree_and_content_ignore_spec = pathspec.PathSpec.from_lines(
+        'gitwildmatch', tree_and_content_ignore_list
+    )
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
 
-def should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
-    return (
+def should_ignore_file(
+    file_path: str,
+    relative_path: str,
+    gitignore_spec: Optional[PathSpec],
+    content_ignore_spec: Optional[PathSpec],
+    tree_and_content_ignore_spec: Optional[PathSpec]
+) -> bool:
+    """Check if a file should be ignored based on various ignore specifications.
+    
+    Args:
+        file_path: Full path to the file
+        relative_path: Path relative to the repository root
+        gitignore_spec: PathSpec object for gitignore patterns
+        content_ignore_spec: PathSpec object for content ignore patterns
+        tree_and_content_ignore_spec: PathSpec object for tree and content ignore patterns
+        
+    Returns:
+        bool: True if file should be ignored, False otherwise
+    """
+    relative_path = relative_path.replace(os.sep, '/')
+
+    if relative_path.startswith('./'):
+        relative_path = relative_path[2:]
+
+    if os.path.isdir(file_path):
+        relative_path += '/'
+
+    result = (
         is_ignored_path(file_path) or
-        (gitignore_spec and gitignore_spec.match_file(relative_path)) or
-        (content_ignore_spec and content_ignore_spec.match_file(relative_path)) or
-        (tree_and_content_ignore_spec and tree_and_content_ignore_spec.match_file(relative_path)) or
+        bool(
+            gitignore_spec and
+            gitignore_spec.match_file(relative_path)
+        ) or
+        bool(
+            content_ignore_spec and
+            content_ignore_spec.match_file(relative_path)
+        ) or
+        bool(
+            tree_and_content_ignore_spec and
+            tree_and_content_ignore_spec.match_file(relative_path)
+        ) or
         os.path.basename(file_path).startswith('repo-to-text_')
     )
 
-def is_ignored_path(file_path: str) -> bool:
-    ignored_dirs = ['.git']
-    ignored_files_prefix = ['repo-to-text_']
-    is_ignored_dir = any(ignored in file_path for ignored in ignored_dirs)
-    is_ignored_file = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
-    result = is_ignored_dir or is_ignored_file
-    if result:
-        logging.debug(f'Path ignored: {file_path}')
+    logging.debug('Checking if file should be ignored:')
+    logging.debug('    file_path: %s', file_path)
+    logging.debug('    relative_path: %s', relative_path)
+    logging.debug('    Result: %s', result)
     return result
 
-def remove_empty_dirs(tree_output: str, path='.') -> str:
-    logging.debug('Removing empty directories from tree output')
-    lines = tree_output.splitlines()
-    non_empty_dirs = set()
-    filtered_lines = []
+def save_repo_to_text(
+        path: str = '.',
+        output_dir: Optional[str] = None,
+        to_stdout: bool = False,
+        cli_ignore_patterns: Optional[List[str]] = None
+    ) -> str:
+    """Save repository structure and contents to a text file."""
+    logging.debug('Starting to save repo structure to text for path: %s', path)
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        path, cli_ignore_patterns
+    )
+    tree_structure: str = get_tree_structure(
+        path, gitignore_spec, tree_and_content_ignore_spec
+    )
+    logging.debug('Final tree structure to be written: %s', tree_structure)
 
-    for line in lines:
-        parts = line.strip().split()
-        if parts:
-            full_path = parts[-1]
-            if os.path.isdir(full_path) and not any(os.path.isfile(os.path.join(full_path, f)) for f in os.listdir(full_path)):
-                logging.debug(f'Directory is empty and will be removed: {full_path}')
-                continue
-            non_empty_dirs.add(os.path.dirname(full_path))
-            filtered_lines.append(line)
-    
-    final_lines = []
-    for line in filtered_lines:
-        parts = line.strip().split()
-        if parts:
-            full_path = parts[-1]
-            if os.path.isdir(full_path) and full_path not in non_empty_dirs:
-                logging.debug(f'Directory is empty and will be removed: {full_path}')
-                continue
-            final_lines.append(line)
-    
-    logging.debug('Empty directory removal complete')
-    return '\n'.join(final_lines)
+    output_content = generate_output_content(
+        path,
+        tree_structure,
+        gitignore_spec,
+        content_ignore_spec,
+        tree_and_content_ignore_spec
+    )
 
-def save_repo_to_text(path='.', output_dir=None) -> str:
-    logging.debug(f'Starting to save repo structure to text for path: {path}')
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
-    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
-    tree_structure = remove_empty_dirs(tree_structure, path)
+    if to_stdout:
+        print(output_content)
+        return output_content
+
+    output_file = write_output_to_file(output_content, output_dir)
+    copy_to_clipboard(output_content)
+
+    print(
+        "[SUCCESS] Repository structure and contents successfully saved to "
+        f"file: \"./{output_file}\""
+    )
+
+    return output_file
+
+def generate_output_content(
+        path: str,
+        tree_structure: str,
+        gitignore_spec: Optional[PathSpec],
+        content_ignore_spec: Optional[PathSpec],
+        tree_and_content_ignore_spec: Optional[PathSpec]
+    ) -> str:
+    """Generate the output content for the repository."""
+    output_content: List[str] = []
+    project_name = os.path.basename(os.path.abspath(path))
     
-    # Add timestamp to the output file name with a descriptive name
-    timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S-UTC')
+    # Add XML opening tag
+    output_content.append('<repo-to-text>\n')
+    
+    output_content.append(f'Directory: {project_name}\n\n')
+    output_content.append('Directory Structure:\n')
+    output_content.append('<directory_structure>\n.\n')
+
+    if os.path.exists(os.path.join(path, '.gitignore')):
+        output_content.append('├── .gitignore\n')
+
+    output_content.append(tree_structure + '\n' + '</directory_structure>\n')
+    logging.debug('Tree structure written to output content')
+
+    for root, _, files in os.walk(path):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            relative_path = os.path.relpath(file_path, path)
+
+            if should_ignore_file(
+                file_path,
+                relative_path,
+                gitignore_spec,
+                content_ignore_spec,
+                tree_and_content_ignore_spec
+            ):
+                continue
+
+            relative_path = relative_path.replace('./', '', 1)
+
+            try:
+                # Try to open as text first
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    file_content = f.read()
+                    output_content.append(f'\n<content full_path="{relative_path}">\n')
+                    output_content.append(file_content)
+                    output_content.append('\n</content>\n')
+            except UnicodeDecodeError:
+                # Handle binary files with the same content tag format
+                logging.debug('Handling binary file contents: %s', file_path)
+                with open(file_path, 'rb') as f:
+                    binary_content = f.read()
+                    output_content.append(f'\n<content full_path="{relative_path}">\n')
+                    output_content.append(binary_content.decode('latin1'))
+                    output_content.append('\n</content>\n')
+
+    # Add XML closing tag
+    output_content.append('\n</repo-to-text>\n')
+    
+    logging.debug('Repository contents written to output content')
+
+    return ''.join(output_content)
+
+def write_output_to_file(output_content: str, output_dir: Optional[str]) -> str:
+    """Write the output content to a file."""
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-UTC')
     output_file = f'repo-to-text_{timestamp}.txt'
-    
-    # Determine the full path to the output file
+
     if output_dir:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         output_file = os.path.join(output_dir, output_file)
-    
-    with open(output_file, 'w') as file:
-        project_name = os.path.basename(os.path.abspath(path))
-        file.write(f'Directory: {project_name}\n\n')
-        file.write('Directory Structure:\n')
-        file.write('```\n.\n')
 
-        # Insert .gitignore if it exists
-        if os.path.exists(os.path.join(path, '.gitignore')):
-            file.write('├── .gitignore\n')
-        
-        file.write(tree_structure + '\n' + '```\n')
-        logging.debug('Tree structure written to file')
+    with open(output_file, 'w', encoding='utf-8') as file:
+        file.write(output_content)
 
-        for root, _, files in os.walk(path):
-            for filename in files:
-                file_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(file_path, path)
-                
-                if should_ignore_file(file_path, relative_path, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec):
-                    continue
-
-                relative_path = relative_path.replace('./', '', 1)
-                
-                file.write(f'\nContents of {relative_path}:\n')
-                file.write('```\n')
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        file.write(f.read())
-                except UnicodeDecodeError:
-                    logging.debug(f'Could not decode file contents: {file_path}')
-                    file.write('[Could not decode file contents]\n')
-                file.write('\n```\n')
-
-        file.write('\n')
-        logging.debug('Repository contents written to file')
-    
-    # Read the contents of the generated file
-    with open(output_file, 'r') as file:
-        repo_text = file.read()
-    
-    # Copy the contents to the clipboard
-    pyperclip.copy(repo_text)
-    logging.debug('Repository structure and contents copied to clipboard')
-    
     return output_file
 
-def main():
-    parser = argparse.ArgumentParser(description='Convert repository structure and contents to text')
+def copy_to_clipboard(output_content: str) -> None:
+    """Copy the output content to the clipboard if possible."""
+    try:
+        import importlib.util  # pylint: disable=import-outside-toplevel
+        spec: Optional[ModuleSpec] = importlib.util.find_spec("pyperclip")  # type: ignore
+        if spec:
+            import pyperclip  # pylint: disable=import-outside-toplevel # type: ignore
+            pyperclip.copy(output_content)  # type: ignore
+            logging.debug('Repository structure and contents copied to clipboard')
+        else:
+            print("Tip: Install 'pyperclip' package to enable automatic clipboard copying:")
+            print("     pip install pyperclip")
+    except ImportError as e:
+        logging.warning(
+            'Could not copy to clipboard. You might be running this '
+            'script over SSH or without clipboard support.'
+        )
+        logging.debug('Clipboard copy error: %s', e)
+
+</content>
+
+<content full_path="repo_to_text/utils/__init__.py">
+"""This module contains utility functions for the repo_to_text package."""
+
+from .utils import setup_logging, check_tree_command, is_ignored_path
+
+__all__ = ['setup_logging', 'check_tree_command', 'is_ignored_path']
+
+</content>
+
+<content full_path="repo_to_text/utils/utils.py">
+"""This module contains utility functions for the repo_to_text package."""
+
+import shutil
+import logging
+from typing import List
+
+def setup_logging(debug: bool = False) -> None:
+    """Set up logging configuration.
+    
+    Args:
+        debug: If True, sets logging level to DEBUG, otherwise INFO
+    """
+    logging_level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def check_tree_command() -> bool:
+    """Check if the `tree` command is available, and suggest installation if not.
+    
+    Returns:
+        bool: True if tree command is available, False otherwise
+    """
+    if shutil.which('tree') is None:
+        print(
+            "The 'tree' command is not found. "
+            + "Please install it using one of the following commands:"
+        )
+        print("For Debian-based systems (e.g., Ubuntu): sudo apt-get install tree")
+        print("For Red Hat-based systems (e.g., Fedora, CentOS): sudo yum install tree")
+        return False
+    return True
+
+def is_ignored_path(file_path: str) -> bool:
+    """Check if a file path should be ignored based on predefined rules.
+    
+    Args:
+        file_path: Path to check
+        
+    Returns:
+        bool: True if path should be ignored, False otherwise
+    """
+    ignored_dirs: List[str] = ['.git']
+    ignored_files_prefix: List[str] = ['repo-to-text_']
+    is_ignored_dir = any(ignored in file_path for ignored in ignored_dirs)
+    is_ignored_file = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
+    result = is_ignored_dir or is_ignored_file
+    if result:
+        logging.debug('Path ignored: %s', file_path)
+    return result
+
+</content>
+
+<content full_path="repo_to_text/cli/__init__.py">
+"""This module contains the CLI interface for the repo_to_text package."""
+
+from .cli import create_default_settings_file, parse_args, main
+
+__all__ = ['create_default_settings_file', 'parse_args', 'main']
+
+</content>
+
+<content full_path="repo_to_text/cli/cli.py">
+"""
+CLI for repo-to-text
+"""
+
+import argparse
+import textwrap
+import os
+import logging
+import sys
+from typing import NoReturn
+
+from ..utils.utils import setup_logging
+from ..core.core import save_repo_to_text
+
+def create_default_settings_file() -> None:
+    """Create a default .repo-to-text-settings.yaml file."""
+    settings_file = '.repo-to-text-settings.yaml'
+    if os.path.exists(settings_file):
+        raise FileExistsError(
+            f"The settings file '{settings_file}' already exists. "
+            "Please remove it or rename it if you want to create a new default settings file."
+        )
+
+    default_settings = textwrap.dedent("""\
+        # Details: https://github.com/kirill-markin/repo-to-text
+        # Syntax: gitignore rules
+
+        # Ignore files and directories for all sections from gitignore file
+        # Default: True
+        gitignore-import-and-ignore: True
+
+        # Ignore files and directories for tree
+        # and contents sections (<content full_path="...">...</content>)
+        ignore-tree-and-content:
+          - ".repo-to-text-settings.yaml"
+
+        # Ignore files and directories for contents sections
+        ignore-content:
+          - "README.md"
+          - "LICENSE"
+          - "package-lock.json"
+    """)
+    with open('.repo-to-text-settings.yaml', 'w', encoding='utf-8') as f:
+        f.write(default_settings)
+    print("Default .repo-to-text-settings.yaml created.")
+
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments.
+    
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
+    parser = argparse.ArgumentParser(
+        description='Convert repository structure and contents to text'
+    )
+    parser.add_argument('input_dir', nargs='?', default='.', help='Directory to process')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     parser.add_argument('--output-dir', type=str, help='Directory to save the output file')
-    args = parser.parse_args()
+    parser.add_argument(
+        '--create-settings',
+        '--init',
+        action='store_true',
+        help='Create default .repo-to-text-settings.yaml file'
+    )
+    parser.add_argument('--stdout', action='store_true', help='Output to stdout instead of a file')
+    parser.add_argument(
+        '--ignore-patterns',
+        nargs='*',
+        help="List of files or directories to ignore in both tree and content sections. "
+        "Supports wildcards (e.g., '*')."
+    )
+    return parser.parse_args()
 
+def main() -> NoReturn:
+    """Main entry point for the CLI.
+    
+    Raises:
+        SystemExit: Always exits with code 0 on success
+    """
+    args = parse_args()
     setup_logging(debug=args.debug)
     logging.debug('repo-to-text script started')
-    save_repo_to_text(output_dir=args.output_dir)
-    logging.debug('repo-to-text script finished')
 
-if __name__ == '__main__':
-    main()
+    try:
+        if args.create_settings:
+            create_default_settings_file()
+            logging.debug('.repo-to-text-settings.yaml file created')
+        else:
+            save_repo_to_text(
+                path=args.input_dir,
+                output_dir=args.output_dir,
+                to_stdout=args.stdout,
+                cli_ignore_patterns=args.ignore_patterns
+            )
 
-```
+        logging.debug('repo-to-text script finished')
+        sys.exit(0)
+    except (FileNotFoundError, FileExistsError, PermissionError, OSError) as e:
+        logging.error('Error occurred: %s', str(e))
+        sys.exit(1)
 
+</content>
+
+</repo-to-text>

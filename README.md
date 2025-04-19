@@ -12,7 +12,37 @@
 
 ![Example Output](https://raw.githubusercontent.com/kirill-markin/repo-to-text/main/examples/screenshot-demo.jpg)
 
-The generated text file will include the directory structure and contents of each file. For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo-to-text_2024-06-09-08-06-31-UTC.txt).
+The generated text file will include the directory structure and contents of each file, using XML tags for better structure:
+
+```xml
+<repo-to-text>
+Directory: myproject
+
+Directory Structure:
+<directory_structure>
+.
+├── .gitignore
+├── README.md
+└── src
+    └── main.py
+</directory_structure>
+
+<content full_path="README.md">
+# My Project
+This is a simple project.
+</content>
+
+<content full_path="src/main.py">
+def main():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    main()
+</content>
+
+</repo-to-text>
+
+For a full example, see the [example output for this repository](https://github.com/kirill-markin/repo-to-text/blob/main/examples/example_repo-to-text_2024-06-09-08-06-31-UTC.txt).
 
 ## Installation
 
@@ -152,14 +182,14 @@ To create a settings file, add a file named `.repo-to-text-settings.yaml` at the
 gitignore-import-and-ignore: True
 
 # Ignore files and directories for tree
-# and "Contents of ..." sections
+# and contents sections (<content full_path="...">...</content>)
 ignore-tree-and-content:
   - ".repo-to-text-settings.yaml"
   - "examples/"
   - "MANIFEST.in"
   - "setup.py"
 
-# Ignore files and directories for "Contents of ..." section
+# Ignore files and directories for contents sections
 ignore-content:
   - "README.md"
   - "LICENSE"
@@ -171,8 +201,8 @@ You can copy this file from the [existing example in the project](https://github
 ### Configuration Options
 
 - **gitignore-import-and-ignore**: Ignore files and directories specified in `.gitignore` for all sections.
-- **ignore-tree-and-content**: Ignore files and directories for the tree and "Contents of ..." sections.
-- **ignore-content**: Ignore files and directories only for the "Contents of ..." section.
+- **ignore-tree-and-content**: Ignore files and directories for the tree and contents sections.
+- **ignore-content**: Ignore files and directories only for the contents sections.
 
 Using these settings, you can control which files and directories are included or excluded from the final text file.
 

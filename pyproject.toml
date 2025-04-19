@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "repo-to-text"
-version = "0.5.4"
+version = "0.6.0"
 authors = [
     { name = "Kirill Markin", email = "markinkirill@gmail.com" },
 ]
-description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in markdown code blocks. It may be useful to chat with LLM about your code."
+description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in structured XML format. It may be useful to chat with LLM about your code."
 readme = "README.md"
 requires-python = ">=3.6"
 license = { text = "MIT" }

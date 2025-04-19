@@ -240,7 +240,7 @@ def test_save_repo_to_text_with_binary_files(temp_dir: str) -> None:
     # Check that the binary file is listed in the structure
     assert "binary.bin" in output
     # Check that the file content section exists with raw binary content
-    expected_content = f"Contents of binary.bin:\n```\n{binary_content.decode('latin1')}\n```"
+    expected_content = f"<content full_path=\"binary.bin\">\n{binary_content.decode('latin1')}\n</content>"
     assert expected_content in output
 
 def test_save_repo_to_text_custom_output_dir(temp_dir: str) -> None:

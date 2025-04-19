@@ -252,14 +252,18 @@ def generate_output_content(
     """Generate the output content for the repository."""
     output_content: List[str] = []
     project_name = os.path.basename(os.path.abspath(path))
+    
+    # Add XML opening tag
+    output_content.append('<repo-to-text>\n')
+    
     output_content.append(f'Directory: {project_name}\n\n')
     output_content.append('Directory Structure:\n')
-    output_content.append('```\n.\n')
+    output_content.append('<directory_structure>\n.\n')
 
     if os.path.exists(os.path.join(path, '.gitignore')):
         output_content.append('├── .gitignore\n')
 
-    output_content.append(tree_structure + '\n' + '```\n')
+    output_content.append(tree_structure + '\n' + '</directory_structure>\n')
     logging.debug('Tree structure written to output content')
 
     for root, _, files in os.walk(path):
@@ -278,17 +282,25 @@ def generate_output_content(
 
             relative_path = relative_path.replace('./', '', 1)
 
-            output_content.append(f'\nContents of {relative_path}:\n')
-            output_content.append('```\n')
             try:
+                # Try to open as text first
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    output_content.append(f.read())
+                    file_content = f.read()
+                    output_content.append(f'\n<content full_path="{relative_path}">\n')
+                    output_content.append(file_content)
+                    output_content.append('\n</content>\n')
             except UnicodeDecodeError:
-                logging.debug('Could not decode file contents: %s', file_path)
-                output_content.append('[Could not decode file contents]\n')
-            output_content.append('\n```\n')
+                # Handle binary files with the same content tag format
+                logging.debug('Handling binary file contents: %s', file_path)
+                with open(file_path, 'rb') as f:
+                    binary_content = f.read()
+                    output_content.append(f'\n<content full_path="{relative_path}">\n')
+                    output_content.append(binary_content.decode('latin1'))
+                    output_content.append('\n</content>\n')
 
-    output_content.append('\n')
+    # Add XML closing tag
+    output_content.append('\n</repo-to-text>\n')
+    
     logging.debug('Repository contents written to output content')
 
     return ''.join(output_content)
@@ -312,7 +324,7 @@ def copy_to_clipboard(output_content: str) -> None:
     """Copy the output content to the clipboard if possible."""
     try:
         import importlib.util  # pylint: disable=import-outside-toplevel
-        spec: Optional[ModuleSpec] = importlib.util.find_spec("pyperclip")
+        spec: Optional[ModuleSpec] = importlib.util.find_spec("pyperclip")  # type: ignore
         if spec:
             import pyperclip  # pylint: disable=import-outside-toplevel # type: ignore
             pyperclip.copy(output_content)  # type: ignore
