@@ -128,7 +128,10 @@ def load_ignore_specs(
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
     if os.path.exists(repo_settings_path):
-        logging.debug('Loading .repo-to-text-settings.yaml for ignore specs from path: %s', repo_settings_path)
+        logging.debug(
+            'Loading .repo-to-text-settings.yaml for ignore specs from path: %s',
+            repo_settings_path
+        )
         with open(repo_settings_path, 'r', encoding='utf-8') as f:
             settings: Dict[str, Any] = yaml.safe_load(f)
             use_gitignore = settings.get('gitignore-import-and-ignore', True)
@@ -137,7 +140,9 @@ def load_ignore_specs(
                     'gitwildmatch', settings['ignore-content']
                 )
             if 'ignore-tree-and-content' in settings:
-                tree_and_content_ignore_list.extend(settings.get('ignore-tree-and-content', []))
+                tree_and_content_ignore_list.extend(
+                    settings.get('ignore-tree-and-content', [])
+                )
 
     if cli_ignore_patterns:
         tree_and_content_ignore_list.extend(cli_ignore_patterns)
@@ -161,7 +166,10 @@ def load_additional_specs(path: str = '.') -> Dict[str, Any]:
     }
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
     if os.path.exists(repo_settings_path):
-        logging.debug('Loading .repo-to-text-settings.yaml for additional specs from path: %s', repo_settings_path)
+        logging.debug(
+            'Loading .repo-to-text-settings.yaml for additional specs from path: %s',
+            repo_settings_path
+        )
         with open(repo_settings_path, 'r', encoding='utf-8') as f:
             settings: Dict[str, Any] = yaml.safe_load(f)
             if 'maximum_word_count_per_file' in settings:
@@ -232,12 +240,15 @@ def save_repo_to_text(
         cli_ignore_patterns: Optional[List[str]] = None
     ) -> str:
     """Save repository structure and contents to a text file or multiple files."""
+    # pylint: disable=too-many-locals
     logging.debug('Starting to save repo structure to text for path: %s', path)
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
-        path, cli_ignore_patterns
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = (
+        load_ignore_specs(path, cli_ignore_patterns)
     )
     additional_specs = load_additional_specs(path)
-    maximum_word_count_per_file = additional_specs.get('maximum_word_count_per_file')
+    maximum_word_count_per_file = additional_specs.get(
+        'maximum_word_count_per_file'
+    )
 
     tree_structure: str = get_tree_structure(
         path, gitignore_spec, tree_and_content_ignore_spec
@@ -265,12 +276,16 @@ def save_repo_to_text(
     output_filepaths: List[str] = []
 
     if not output_content_segments:
-        logging.warning("generate_output_content returned no segments. No output file will be created.")
+        logging.warning(
+            "generate_output_content returned no segments. No output file will be created."
+        )
         return "" # Or handle by creating an empty placeholder file
 
     if len(output_content_segments) == 1:
         single_filename = f"{base_output_name_stem}.txt"
-        full_path_single_file = os.path.join(output_dir, single_filename) if output_dir else single_filename
+        full_path_single_file = (
+            os.path.join(output_dir, single_filename) if output_dir else single_filename
+        )
         
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -281,7 +296,7 @@ def save_repo_to_text(
         copy_to_clipboard(output_content_segments[0])
         print(
             "[SUCCESS] Repository structure and contents successfully saved to "
-            f"file: \"{os.path.relpath(full_path_single_file)}\"" # Use relpath for cleaner output
+            f"file: \"{os.path.relpath(full_path_single_file)}\""
         )
     else: # Multiple segments
         if output_dir and not os.path.exists(output_dir):
@@ -289,17 +304,20 @@ def save_repo_to_text(
 
         for i, segment_content in enumerate(output_content_segments):
             part_filename = f"{base_output_name_stem}_part_{i+1}.txt"
-            full_path_part_file = os.path.join(output_dir, part_filename) if output_dir else part_filename
+            full_path_part_file = (
+                os.path.join(output_dir, part_filename) if output_dir else part_filename
+            )
             
             with open(full_path_part_file, 'w', encoding='utf-8') as f:
                 f.write(segment_content)
             output_filepaths.append(full_path_part_file)
         
         print(
-            f"[SUCCESS] Repository structure and contents successfully saved to {len(output_filepaths)} files:"
+            f"[SUCCESS] Repository structure and contents successfully saved to "
+            f"{len(output_filepaths)} files:"
         )
         for fp in output_filepaths:
-            print(f"  - \"{os.path.relpath(fp)}\"") # Use relpath for cleaner output
+            print(f"  - \"{os.path.relpath(fp)}\"")
             
     return os.path.relpath(output_filepaths[0]) if output_filepaths else ""
 
@@ -315,6 +333,7 @@ def generate_output_content(
     """Generate the output content for the repository, potentially split into segments."""
     # pylint: disable=too-many-arguments
     # pylint: disable=too-many-locals
+    # pylint: disable=too-many-positional-arguments
     output_segments: List[str] = []
     current_segment_builder: List[str] = []
     current_segment_word_count: int = 0
@@ -337,8 +356,8 @@ def generate_output_content(
         if maximum_word_count_per_file is not None:
             # If current segment is not empty, and adding this chunk would exceed limit,
             # finalize the current segment before adding this new chunk.
-            if current_segment_builder and \
-               (current_segment_word_count + chunk_wc > maximum_word_count_per_file):
+            if (current_segment_builder and 
+                current_segment_word_count + chunk_wc > maximum_word_count_per_file):
                 _finalize_current_segment()
         
         current_segment_builder.append(chunk)
@@ -393,19 +412,23 @@ def generate_output_content(
     
     _finalize_current_segment() # Finalize any remaining content in the builder
 
-    logging.debug(f'Repository contents generated into {len(output_segments)} segment(s)')
+    logging.debug(
+        'Repository contents generated into %s segment(s)', len(output_segments)
+    )
     
     # Ensure at least one segment is returned, even if it's just the empty repo structure
-    if not output_segments and not current_segment_builder : # Should not happen if header/footer always added
-        # This case implies an empty repo and an extremely small word limit that split even the minimal tags.
-        # Or, if all content was filtered out.
+    if not output_segments and not current_segment_builder:
+        # This case implies an empty repo and an extremely small word limit that split
+        # even the minimal tags. Or, if all content was filtered out.
         # Return a minimal valid structure if everything else resulted in empty.
-        # However, the _add_chunk_to_output for repo tags should ensure current_segment_builder is not empty.
-        # And _finalize_current_segment ensures output_segments gets it.
-        # If output_segments is truly empty, it means an error or unexpected state.
-        # For safety, if it's empty, return a list with one empty string or minimal tags.
-        # Given the logic, this path is unlikely.
-        logging.warning("No output segments were generated. Returning a single empty segment.")
+        # However, the _add_chunk_to_output for repo tags should ensure
+        # current_segment_builder is not empty. And _finalize_current_segment ensures
+        # output_segments gets it. If output_segments is truly empty, it means an error
+        # or unexpected state. For safety, if it's empty, return a list with one empty
+        # string or minimal tags. Given the logic, this path is unlikely.
+        logging.warning(
+            "No output segments were generated. Returning a single empty segment."
+        )
         return ["<repo-to-text>\n</repo-to-text>\n"]
 
 
