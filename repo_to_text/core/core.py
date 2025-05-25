@@ -79,7 +79,7 @@ def process_line(
     except (ValueError, OSError) as e:
         # Handle case where relpath fails (e.g., in CI when cwd is unavailable)
         # Use absolute path conversion as fallback
-        logging.debug(f'os.path.relpath failed for {full_path}, using fallback: {e}')
+        logging.debug('os.path.relpath failed for %s, using fallback: %s', full_path, e)
         if os.path.isabs(full_path) and os.path.isabs(path):
             # Both are absolute, try manual relative calculation
             try:
