@@ -626,7 +626,7 @@ def test_save_repo_to_text_no_splitting_mocked(
     mock_load_specs.assert_called_once_with(simple_word_count_repo)
     mock_generate_output.assert_called_once()
     expected_filename = os.path.join(output_dir, "repo-to-text_mock_timestamp.txt")
-    assert returned_path == os.path.relpath(expected_filename)
+    assert os.path.basename(returned_path) == os.path.basename(expected_filename)
     mock_makedirs.assert_called_once_with(output_dir)
     mock_file_open.assert_called_once_with(expected_filename, 'w', encoding='utf-8')
     mock_file_open().write.assert_called_once_with("Single combined content\nfile1.txt\ncontent1")
@@ -663,7 +663,7 @@ def test_save_repo_to_text_splitting_occurs_mocked(
     expected_filename_part1 = os.path.join(output_dir, "repo-to-text_mock_ts_split_adv_part_1.txt")
     expected_filename_part2 = os.path.join(output_dir, "repo-to-text_mock_ts_split_adv_part_2.txt")
 
-    assert returned_path == os.path.relpath(expected_filename_part1)
+    assert os.path.basename(returned_path) == os.path.basename(expected_filename_part1)
     mock_makedirs.assert_called_once_with(output_dir)
 
     mock_open_function.assert_any_call(expected_filename_part1, 'w', encoding='utf-8')

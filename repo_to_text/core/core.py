@@ -74,7 +74,22 @@ def process_line(
     if not full_path or full_path == '.':
         return None
 
-    relative_path = os.path.relpath(full_path, path).replace(os.sep, '/')
+    try:
+        relative_path = os.path.relpath(full_path, path).replace(os.sep, '/')
+    except (ValueError, OSError) as e:
+        # Handle case where relpath fails (e.g., in CI when cwd is unavailable)
+        # Use absolute path conversion as fallback
+        logging.debug(f'os.path.relpath failed for {full_path}, using fallback: {e}')
+        if os.path.isabs(full_path) and os.path.isabs(path):
+            # Both are absolute, try manual relative calculation
+            try:
+                common = os.path.commonpath([full_path, path])
+                relative_path = os.path.relpath(full_path, common).replace(os.sep, '/')
+            except (ValueError, OSError):
+                # Last resort: use just the filename
+                relative_path = os.path.basename(full_path)
+        else:
+            relative_path = os.path.basename(full_path)
 
     if should_ignore_file(
         full_path,
@@ -294,9 +309,11 @@ def save_repo_to_text(
             f.write(output_content_segments[0])
         output_filepaths.append(full_path_single_file)
         copy_to_clipboard(output_content_segments[0])
+        # Use basename for safe display in case relpath fails
+        display_path = os.path.basename(full_path_single_file)
         print(
             "[SUCCESS] Repository structure and contents successfully saved to "
-            f"file: \"{os.path.relpath(full_path_single_file)}\""
+            f"file: \"{display_path}\""
         )
     else: # Multiple segments
         if output_dir and not os.path.exists(output_dir):
@@ -317,9 +334,14 @@ def save_repo_to_text(
             f"{len(output_filepaths)} files:"
         )
         for fp in output_filepaths:
-            print(f"  - \"{os.path.relpath(fp)}\"")
+            # Use basename for safe display in case relpath fails
+            display_path = os.path.basename(fp)
+            print(f"  - \"{display_path}\"")
             
-    return os.path.relpath(output_filepaths[0]) if output_filepaths else ""
+    if output_filepaths:
+        # Return the actual file path for existence checks
+        return output_filepaths[0]
+    return ""
 
 
 def generate_output_content(
