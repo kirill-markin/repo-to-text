@@ -33,16 +33,16 @@ Repository = "https://github.com/kirill-markin/repo-to-text"
 repo-to-text = "repo_to_text.main:main"
 flatten = "repo_to_text.main:main"
 
-#[project.optional-dependencies]
-#dev = [
-#    "pytest>=8.2.2",
-#    "black",
-#    "mypy",
-#    "isort",
-#    "build",
-#    "twine",
-#    "pylint",
-#]
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.2",
+    "black",
+    "mypy",
+    "isort",
+    "build",
+    "twine",
+    "pylint",
+]
 
 [tool.pylint]
 disable = [
@@ -50,12 +50,5 @@ disable = [
 ]
 
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-black = "^25.1.0"
-mypy = "^1.15.0"
-isort = "^6.0.1"
-build = "^1.2.2.post1"
-twine = "^6.1.0"
-pylint = "^3.3.7"
+
 
