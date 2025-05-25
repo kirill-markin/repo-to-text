@@ -397,7 +397,7 @@ def test_load_additional_specs_valid_max_words(tmp_path: str) -> None:
     specs = load_additional_specs(tmp_path)
     assert specs["maximum_word_count_per_file"] == 1000
 
-def test_load_additional_specs_invalid_max_words_string(tmp_path: str, caplog) -> None:
+def test_load_additional_specs_invalid_max_words_string(tmp_path: str, caplog: pytest.LogCaptureFixture) -> None:
     """Test load_additional_specs with an invalid string for maximum_word_count_per_file."""
     settings_content = {"maximum_word_count_per_file": "not-an-integer"}
     settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
@@ -408,7 +408,7 @@ def test_load_additional_specs_invalid_max_words_string(tmp_path: str, caplog) -
     assert specs["maximum_word_count_per_file"] is None
     assert "Invalid value for 'maximum_word_count_per_file': not-an-integer" in caplog.text
 
-def test_load_additional_specs_invalid_max_words_negative(tmp_path: str, caplog) -> None:
+def test_load_additional_specs_invalid_max_words_negative(tmp_path: str, caplog: pytest.LogCaptureFixture) -> None:
     """Test load_additional_specs with a negative integer for maximum_word_count_per_file."""
     settings_content = {"maximum_word_count_per_file": -100}
     settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
@@ -419,7 +419,7 @@ def test_load_additional_specs_invalid_max_words_negative(tmp_path: str, caplog)
     assert specs["maximum_word_count_per_file"] is None
     assert "Invalid value for 'maximum_word_count_per_file': -100" in caplog.text
 
-def test_load_additional_specs_max_words_is_none_in_yaml(tmp_path: str, caplog) -> None:
+def test_load_additional_specs_max_words_is_none_in_yaml(tmp_path: str, caplog: pytest.LogCaptureFixture) -> None:
     """Test load_additional_specs when maximum_word_count_per_file is explicitly null in YAML."""
     settings_content = {"maximum_word_count_per_file": None} # In YAML, this is 'null'
     settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
@@ -689,7 +689,7 @@ def test_save_repo_to_text_stdout_with_splitting(
     mock_file_open: MagicMock,
     mock_copy_to_clipboard: MagicMock,
     simple_word_count_repo: str,
-    capsys
+    capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test save_repo_to_text with to_stdout=True and content that would split."""
     mock_load_specs.return_value = {'maximum_word_count_per_file': 10}
@@ -721,7 +721,7 @@ def test_save_repo_to_text_empty_segments(
     mock_load_specs: MagicMock,
     simple_word_count_repo: str,
     tmp_path: str,
-    caplog
+    caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test save_repo_to_text when generate_output_content returns no segments."""
     mock_load_specs.return_value = {'maximum_word_count_per_file': None}
