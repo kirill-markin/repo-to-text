@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in structured XML format. It may be useful to chat with LLM about your code."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",

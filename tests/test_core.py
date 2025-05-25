@@ -3,15 +3,20 @@
 import os
 import tempfile
 import shutil
-from typing import Generator
+from typing import Generator, IO
 import pytest
+
+from unittest.mock import patch, mock_open, MagicMock
+import yaml # For creating mock settings files easily
 
 from repo_to_text.core.core import (
     get_tree_structure,
     load_ignore_specs,
     should_ignore_file,
     is_ignored_path,
-    save_repo_to_text
+    save_repo_to_text,
+    load_additional_specs,
+    generate_output_content
 )
 
 # pylint: disable=redefined-outer-name
@@ -59,6 +64,26 @@ ignore-content:
             f.write(content)
 
     return tmp_path_str
+
+@pytest.fixture
+def simple_word_count_repo(tmp_path: str) -> str:
+    """Create a simple repository for word count testing."""
+    repo_path = str(tmp_path)
+    files_content = {
+        "file1.txt": "This is file one. It has eight words.", # 8 words
+        "file2.txt": "File two is here. This makes six words.", # 6 words
+        "subdir/file3.txt": "Another file in a subdirectory, with ten words exactly." # 10 words
+    }
+    for file_path, content in files_content.items():
+        full_path = os.path.join(repo_path, file_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    return repo_path
+
+def count_words_for_test(text: str) -> int:
+    """Helper to count words consistently with core logic for tests."""
+    return len(text.split())
 
 def test_is_ignored_path() -> None:
     """Test the is_ignored_path function."""
@@ -301,6 +326,325 @@ def test_empty_dirs_filtering(tmp_path: str) -> None:
             continue
         # Check that no line contains 'empty_dir'
         assert "empty_dir" not in line, f"Found empty_dir in line: {line}"
+
+# Tests for maximum_word_count_per_file functionality
+
+def test_load_additional_specs_valid_max_words(tmp_path: str) -> None:
+    """Test load_additional_specs with a valid maximum_word_count_per_file."""
+    settings_content = {"maximum_word_count_per_file": 1000}
+    settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
+    with open(settings_file, "w", encoding="utf-8") as f:
+        yaml.dump(settings_content, f)
+
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] == 1000
+
+def test_load_additional_specs_invalid_max_words_string(tmp_path: str, caplog) -> None:
+    """Test load_additional_specs with an invalid string for maximum_word_count_per_file."""
+    settings_content = {"maximum_word_count_per_file": "not-an-integer"}
+    settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
+    with open(settings_file, "w", encoding="utf-8") as f:
+        yaml.dump(settings_content, f)
+
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] is None
+    assert "Invalid value for 'maximum_word_count_per_file': not-an-integer" in caplog.text
+
+def test_load_additional_specs_invalid_max_words_negative(tmp_path: str, caplog) -> None:
+    """Test load_additional_specs with a negative integer for maximum_word_count_per_file."""
+    settings_content = {"maximum_word_count_per_file": -100}
+    settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
+    with open(settings_file, "w", encoding="utf-8") as f:
+        yaml.dump(settings_content, f)
+
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] is None
+    assert "Invalid value for 'maximum_word_count_per_file': -100" in caplog.text
+
+def test_load_additional_specs_max_words_is_none_in_yaml(tmp_path: str, caplog) -> None:
+    """Test load_additional_specs when maximum_word_count_per_file is explicitly null in YAML."""
+    settings_content = {"maximum_word_count_per_file": None} # In YAML, this is 'null'
+    settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
+    with open(settings_file, "w", encoding="utf-8") as f:
+        yaml.dump(settings_content, f)
+
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] is None
+    assert "Invalid value for 'maximum_word_count_per_file'" not in caplog.text
+
+def test_load_additional_specs_max_words_not_present(tmp_path: str) -> None:
+    """Test load_additional_specs when maximum_word_count_per_file is not present."""
+    settings_content = {"other_setting": "value"}
+    settings_file = os.path.join(tmp_path, ".repo-to-text-settings.yaml")
+    with open(settings_file, "w", encoding="utf-8") as f:
+        yaml.dump(settings_content, f)
+
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] is None
+
+def test_load_additional_specs_no_settings_file(tmp_path: str) -> None:
+    """Test load_additional_specs when no settings file exists."""
+    specs = load_additional_specs(tmp_path)
+    assert specs["maximum_word_count_per_file"] is None
+
+# Tests for generate_output_content related to splitting
+def test_generate_output_content_no_splitting_max_words_not_set(simple_word_count_repo: str) -> None:
+    """Test generate_output_content with no splitting when max_words is not set."""
+    path = simple_word_count_repo
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
+
+    segments = generate_output_content(
+        path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=None
+    )
+    assert len(segments) == 1
+    assert "file1.txt" in segments[0]
+    assert "This is file one." in segments[0]
+
+def test_generate_output_content_no_splitting_content_less_than_limit(simple_word_count_repo: str) -> None:
+    """Test generate_output_content with no splitting when content is less than max_words limit."""
+    path = simple_word_count_repo
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
+
+    segments = generate_output_content(
+        path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=500 # High limit
+    )
+    assert len(segments) == 1
+    assert "file1.txt" in segments[0]
+
+def test_generate_output_content_splitting_occurs(simple_word_count_repo: str) -> None:
+    """Test generate_output_content when splitting occurs due to max_words limit."""
+    path = simple_word_count_repo
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
+    max_words = 30
+    segments = generate_output_content(
+        path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=max_words
+    )
+    assert len(segments) > 1
+    total_content = "".join(segments)
+    assert "file1.txt" in total_content
+    assert "This is file one." in total_content
+    for i, segment in enumerate(segments):
+        segment_word_count = count_words_for_test(segment)
+        if i < len(segments) - 1: # For all but the last segment
+             # A segment can be larger than max_words if a single chunk (e.g. file content block) is larger
+             assert segment_word_count <= max_words or \
+                    (segment_word_count > max_words and count_words_for_test(segment.splitlines()[-2]) > max_words)
+        else: # Last segment can be smaller
+             assert segment_word_count > 0
+
+def test_generate_output_content_splitting_very_small_limit(simple_word_count_repo: str) -> None:
+    """Test generate_output_content with a very small max_words limit."""
+    path = simple_word_count_repo
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(path)
+    tree_structure = get_tree_structure(path, gitignore_spec, tree_and_content_ignore_spec)
+    max_words = 10 # Very small limit
+    segments = generate_output_content(
+        path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=max_words
+    )
+    assert len(segments) > 3 # Expect multiple splits
+    total_content = "".join(segments)
+    assert "file1.txt" in total_content
+    # Check if file content (which is a chunk) forms its own segment if it's > max_words
+    found_file1_content_chunk = False
+    expected_file1_chunk = "<content full_path=\"file1.txt\">\nThis is file one. It has eight words.\n</content>"
+    for segment in segments:
+        if expected_file1_chunk.strip() in segment.strip(): # Check for the core content
+            # This segment should contain the file1.txt content and its tags
+            # The chunk itself is ~13 words. If max_words is 10, this chunk will be its own segment.
+            assert count_words_for_test(segment) == count_words_for_test(expected_file1_chunk)
+            assert count_words_for_test(segment) > max_words
+            found_file1_content_chunk = True
+            break
+    assert found_file1_content_chunk
+
+def test_generate_output_content_file_header_content_together(tmp_path: str) -> None:
+    """Test that file header and its content are not split if word count allows."""
+    repo_path = str(tmp_path)
+    file_content_str = "word " * 15 # 15 words
+    # Tags: <content full_path="single_file.txt">\n (3) + \n</content> (2) = 5 words. Total block = 20 words.
+    files_content = {"single_file.txt": file_content_str.strip()}
+    for file_path_key, content_val in files_content.items():
+        full_path = os.path.join(repo_path, file_path_key)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content_val)
+
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(repo_path)
+    tree_structure = get_tree_structure(repo_path, gitignore_spec, tree_and_content_ignore_spec)
+    
+    max_words_sufficient = 35 # Enough for header + this one file block (around 20 words + initial header)
+    segments = generate_output_content(
+        repo_path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=max_words_sufficient
+    )
+    assert len(segments) == 1 # Expect no splitting of this file from its tags
+    expected_file_block = f'<content full_path="single_file.txt">\n{file_content_str.strip()}\n</content>'
+    assert expected_file_block in segments[0]
+
+    # Test if it splits if max_words is too small for the file block (20 words)
+    max_words_small = 10
+    segments_small_limit = generate_output_content(
+        repo_path, tree_structure, gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=max_words_small
+    )
+    # The file block (20 words) is a single chunk. It will form its own segment.
+    # Header part will be one segment. File block another. Footer another.
+    assert len(segments_small_limit) >= 2
+    
+    found_file_block_in_own_segment = False
+    for segment in segments_small_limit:
+        if expected_file_block in segment:
+            assert count_words_for_test(segment) == count_words_for_test(expected_file_block)
+            found_file_block_in_own_segment = True
+            break
+    assert found_file_block_in_own_segment
+
+# Tests for save_repo_to_text related to splitting
+@patch('repo_to_text.core.core.load_additional_specs')
+@patch('repo_to_text.core.core.generate_output_content')
+@patch('repo_to_text.core.core.os.makedirs')
+@patch('builtins.open', new_callable=mock_open)
+@patch('repo_to_text.core.core.pyperclip.copy')
+def test_save_repo_to_text_no_splitting_mocked(
+    mock_pyperclip_copy: MagicMock,
+    mock_file_open: MagicMock, # This is the mock_open instance
+    mock_makedirs: MagicMock,
+    mock_generate_output: MagicMock,
+    mock_load_specs: MagicMock,
+    simple_word_count_repo: str,
+    tmp_path: str
+) -> None:
+    """Test save_repo_to_text: no splitting, single file output."""
+    mock_load_specs.return_value = {'maximum_word_count_per_file': None}
+    mock_generate_output.return_value = ["Single combined content\nfile1.txt\ncontent1"]
+    output_dir = os.path.join(str(tmp_path), "output")
+
+    with patch('repo_to_text.core.core.datetime') as mock_datetime:
+        mock_datetime.now.return_value.strftime.return_value = "mock_timestamp"
+        returned_path = save_repo_to_text(simple_word_count_repo, output_dir=output_dir)
+
+    mock_load_specs.assert_called_once_with(simple_word_count_repo)
+    mock_generate_output.assert_called_once() # Args are complex, basic check
+    expected_filename = os.path.join(output_dir, "repo-to-text_mock_timestamp.txt")
+    assert returned_path == os.path.relpath(expected_filename)
+    mock_makedirs.assert_called_once_with(output_dir)
+    mock_file_open.assert_called_once_with(expected_filename, 'w', encoding='utf-8')
+    mock_file_open().write.assert_called_once_with("Single combined content\nfile1.txt\ncontent1")
+    mock_pyperclip_copy.assert_called_once_with("Single combined content\nfile1.txt\ncontent1")
+
+@patch('repo_to_text.core.core.load_additional_specs')
+@patch('repo_to_text.core.core.generate_output_content')
+@patch('repo_to_text.core.core.os.makedirs')
+@patch('builtins.open') # Patch builtins.open to get the mock of the function
+@patch('repo_to_text.core.core.pyperclip.copy')
+def test_save_repo_to_text_splitting_occurs_mocked(
+    mock_pyperclip_copy: MagicMock,
+    mock_open_function: MagicMock, # This is the mock for the open function itself
+    mock_makedirs: MagicMock,
+    mock_generate_output: MagicMock,
+    mock_load_specs: MagicMock,
+    simple_word_count_repo: str,
+    tmp_path: str
+) -> None:
+    """Test save_repo_to_text: splitting occurs, multiple file outputs with better write check."""
+    mock_load_specs.return_value = {'maximum_word_count_per_file': 50}
+    segments_content = ["Segment 1 content data", "Segment 2 content data"]
+    mock_generate_output.return_value = segments_content
+    output_dir = os.path.join(str(tmp_path), "output_split_adv")
+
+    # Mock file handles that 'open' will return when called in a 'with' statement
+    mock_file_handle1 = MagicMock(spec=IO)
+    mock_file_handle2 = MagicMock(spec=IO)
+    # Configure the mock_open_function to return these handles sequentially
+    mock_open_function.side_effect = [mock_file_handle1, mock_file_handle2]
+
+    with patch('repo_to_text.core.core.datetime') as mock_datetime:
+        mock_datetime.now.return_value.strftime.return_value = "mock_ts_split_adv"
+        returned_path = save_repo_to_text(simple_word_count_repo, output_dir=output_dir)
+
+    expected_filename_part1 = os.path.join(output_dir, "repo-to-text_mock_ts_split_adv_part_1.txt")
+    expected_filename_part2 = os.path.join(output_dir, "repo-to-text_mock_ts_split_adv_part_2.txt")
+    
+    assert returned_path == os.path.relpath(expected_filename_part1)
+    mock_makedirs.assert_called_once_with(output_dir)
+    
+    # Check calls to the open function
+    mock_open_function.assert_any_call(expected_filename_part1, 'w', encoding='utf-8')
+    mock_open_function.assert_any_call(expected_filename_part2, 'w', encoding='utf-8')
+    assert mock_open_function.call_count == 2 # Exactly two calls for writing output
+
+    # Check writes to the mocked file handles (returned by open's side_effect)
+    # __enter__() is called by the 'with' statement
+    mock_file_handle1.__enter__().write.assert_called_once_with(segments_content[0])
+    mock_file_handle2.__enter__().write.assert_called_once_with(segments_content[1])
+    
+    mock_pyperclip_copy.assert_not_called()
+
+@patch('repo_to_text.core.core.load_additional_specs')
+@patch('repo_to_text.core.core.generate_output_content')
+@patch('repo_to_text.core.core.os.makedirs')
+@patch('builtins.open', new_callable=mock_open)
+@patch('repo_to_text.core.core.pyperclip.copy')
+def test_save_repo_to_text_stdout_with_splitting(
+    mock_pyperclip_copy: MagicMock,
+    mock_file_open: MagicMock,
+    mock_os_makedirs: MagicMock,
+    mock_generate_output: MagicMock,
+    mock_load_specs: MagicMock,
+    simple_word_count_repo: str,
+    capsys
+) -> None:
+    """Test save_repo_to_text with to_stdout=True and content that would split."""
+    mock_load_specs.return_value = {'maximum_word_count_per_file': 10} # Assume causes splitting
+    mock_generate_output.return_value = ["Segment 1 for stdout.", "Segment 2 for stdout."]
+
+    result_string = save_repo_to_text(simple_word_count_repo, to_stdout=True)
+
+    mock_load_specs.assert_called_once_with(simple_word_count_repo)
+    mock_generate_output.assert_called_once()
+    mock_os_makedirs.assert_not_called()
+    mock_file_open.assert_not_called()
+    mock_pyperclip_copy.assert_not_called()
+
+    captured = capsys.readouterr()
+    # core.py uses print(segment, end=''), so segments are joined directly.
+    assert "Segment 1 for stdout.Segment 2 for stdout." == captured.out
+    assert result_string == "Segment 1 for stdout.Segment 2 for stdout."
+
+@patch('repo_to_text.core.core.load_additional_specs')
+@patch('repo_to_text.core.core.generate_output_content')
+@patch('repo_to_text.core.core.os.makedirs')
+@patch('builtins.open', new_callable=mock_open)
+@patch('repo_to_text.core.core.pyperclip.copy')
+def test_save_repo_to_text_empty_segments(
+    mock_pyperclip_copy: MagicMock,
+    mock_file_open: MagicMock,
+    mock_makedirs: MagicMock,
+    mock_generate_output: MagicMock,
+    mock_load_specs: MagicMock,
+    simple_word_count_repo: str,
+    tmp_path: str,
+    caplog
+) -> None:
+    """Test save_repo_to_text when generate_output_content returns no segments."""
+    mock_load_specs.return_value = {'maximum_word_count_per_file': None}
+    mock_generate_output.return_value = [] # Empty list
+    output_dir = os.path.join(str(tmp_path), "output_empty")
+
+    returned_path = save_repo_to_text(simple_word_count_repo, output_dir=output_dir)
+
+    assert returned_path == ""
+    mock_makedirs.assert_not_called()
+    mock_file_open.assert_not_called()
+    mock_pyperclip_copy.assert_not_called()
+    assert "generate_output_content returned no segments" in caplog.text
 
 if __name__ == "__main__":
     pytest.main([__file__])
