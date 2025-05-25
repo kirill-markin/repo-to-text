@@ -542,8 +542,12 @@ def test_generate_output_content_splitting_very_small_limit(mock_get_tree: Magic
                 found_raw_content_segment = True
                 break
             else:
-                # Raw content by itself (8 words)
-                assert segment_wc == count_words_for_test(raw_file1_content) # 8 words
+                # Segment contains opening tag + raw content (2 + 8 = 10 words)
+                # Opening tag: <content full_path="file1.txt"> (2 words)
+                # Raw content: "This is file one. It has eight words." (8 words)
+                opening_tag_word_count = 2  # <content and full_path="file1.txt">
+                expected_word_count = opening_tag_word_count + count_words_for_test(raw_file1_content)
+                assert segment_wc == expected_word_count # Should be 10 words
                 found_raw_content_segment = True
                 break
     assert found_raw_content_segment, "Segment with raw file1 content not found or not matching expected structure"
