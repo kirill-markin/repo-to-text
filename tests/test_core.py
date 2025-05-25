@@ -523,6 +523,13 @@ def test_generate_output_content_splitting_very_small_limit(mock_get_tree: Magic
     # The splitting logic works per chunk, so raw_content (8 words) + closing_tag (1 word) = 9 words total
     # should fit in one segment when they're placed together
 
+    # Debug: Let's see what segments actually look like in CI
+    print(f"\nDEBUG: Generated {len(segments)} segments:")
+    for i, segment in enumerate(segments):
+        print(f"Segment {i+1} ({count_words_for_test(segment)} words):")
+        print(f"'{segment}'")
+        print("---")
+
     found_raw_content_segment = False
     for segment in segments:
         if raw_file1_content in segment:
