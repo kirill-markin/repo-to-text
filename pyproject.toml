@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "repo-to-text"
-version = "0.6.0"
+version = "0.7.0"
 authors = [
     { name = "Kirill Markin", email = "markinkirill@gmail.com" },
 ]
 description = "Convert a directory structure and its contents into a single text file, including the tree output and file contents in structured XML format. It may be useful to chat with LLM about your code."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -33,18 +33,29 @@ Repository = "https://github.com/kirill-markin/repo-to-text"
 repo-to-text = "repo_to_text.main:main"
 flatten = "repo_to_text.main:main"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.2.2",
-    "black",
-    "mypy",
-    "isort",
-    "build",
-    "twine",
-    "pylint",
-]
+#[project.optional-dependencies]
+#dev = [
+#    "pytest>=8.2.2",
+#    "black",
+#    "mypy",
+#    "isort",
+#    "build",
+#    "twine",
+#    "pylint",
+#]
 
 [tool.pylint]
 disable = [
     "C0303",
 ]
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+black = "^25.1.0"
+mypy = "^1.15.0"
+isort = "^6.0.1"
+build = "^1.2.2.post1"
+twine = "^6.1.0"
+pylint = "^3.3.7"
+

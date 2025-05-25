@@ -205,6 +205,13 @@ You can copy this file from the [existing example in the project](https://github
 - **ignore-content**: Ignore files and directories only for the contents sections.
 
 Using these settings, you can control which files and directories are included or excluded from the final text file.
+- **maximum_word_count_per_file**: Optional integer. Sets a maximum word count for each output file. If the total content exceeds this limit, the output will be split into multiple files. The split files will be named using the convention `output_filename_part_N.txt`, where `N` is the part number.
+  Example:
+  ```yaml
+  # Optional: Maximum word count per output file.
+  # If set, the output will be split into multiple files if the total word count exceeds this.
+  # maximum_word_count_per_file: 10000
+  ```
 
 ### Wildcards and Inclusions
 

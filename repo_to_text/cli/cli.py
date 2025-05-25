@@ -39,6 +39,11 @@ def create_default_settings_file() -> None:
           - "README.md"
           - "LICENSE"
           - "package-lock.json"
+
+        # Optional: Maximum number of words per output file before splitting.
+        # If not specified or null, no splitting based on word count will occur.
+        # Must be a positive integer if set.
+        # maximum_word_count_per_file: 10000
     """)
     with open('.repo-to-text-settings.yaml', 'w', encoding='utf-8') as f:
         f.write(default_settings)

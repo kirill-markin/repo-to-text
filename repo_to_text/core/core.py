@@ -8,7 +8,7 @@ from typing import Tuple, Optional, List, Dict, Any, Set
 from datetime import datetime, timezone
 from importlib.machinery import ModuleSpec
 import logging
-import yaml
+import yaml # type: ignore
 import pathspec
 from pathspec import PathSpec
 
@@ -118,7 +118,7 @@ def load_ignore_specs(
         cli_ignore_patterns: List of patterns from command line
         
     Returns:
-        Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]: Tuple of gitignore_spec, 
+        Tuple[Optional[PathSpec], Optional[PathSpec], PathSpec]: Tuple of gitignore_spec,
         content_ignore_spec, and tree_and_content_ignore_spec
     """
     gitignore_spec = None
@@ -128,16 +128,21 @@ def load_ignore_specs(
 
     repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
     if os.path.exists(repo_settings_path):
-        logging.debug('Loading .repo-to-text-settings.yaml from path: %s', repo_settings_path)
+        logging.debug(
+            'Loading .repo-to-text-settings.yaml for ignore specs from path: %s',
+            repo_settings_path
+        )
         with open(repo_settings_path, 'r', encoding='utf-8') as f:
             settings: Dict[str, Any] = yaml.safe_load(f)
             use_gitignore = settings.get('gitignore-import-and-ignore', True)
             if 'ignore-content' in settings:
-                content_ignore_spec: Optional[PathSpec] = pathspec.PathSpec.from_lines(
+                content_ignore_spec = pathspec.PathSpec.from_lines(
                     'gitwildmatch', settings['ignore-content']
                 )
             if 'ignore-tree-and-content' in settings:
-                tree_and_content_ignore_list.extend(settings.get('ignore-tree-and-content', []))
+                tree_and_content_ignore_list.extend(
+                    settings.get('ignore-tree-and-content', [])
+                )
 
     if cli_ignore_patterns:
         tree_and_content_ignore_list.extend(cli_ignore_patterns)
@@ -153,6 +158,30 @@ def load_ignore_specs(
         'gitwildmatch', tree_and_content_ignore_list
     )
     return gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec
+
+def load_additional_specs(path: str = '.') -> Dict[str, Any]:
+    """Load additional specifications from the settings file."""
+    additional_specs: Dict[str, Any] = {
+        'maximum_word_count_per_file': None
+    }
+    repo_settings_path = os.path.join(path, '.repo-to-text-settings.yaml')
+    if os.path.exists(repo_settings_path):
+        logging.debug(
+            'Loading .repo-to-text-settings.yaml for additional specs from path: %s',
+            repo_settings_path
+        )
+        with open(repo_settings_path, 'r', encoding='utf-8') as f:
+            settings: Dict[str, Any] = yaml.safe_load(f)
+            if 'maximum_word_count_per_file' in settings:
+                max_words = settings['maximum_word_count_per_file']
+                if isinstance(max_words, int) and max_words > 0:
+                    additional_specs['maximum_word_count_per_file'] = max_words
+                elif max_words is not None: # Allow null/None to mean "not set"
+                    logging.warning(
+                        "Invalid value for 'maximum_word_count_per_file': %s. "
+                        "It must be a positive integer or null. Ignoring.", max_words
+                    )
+    return additional_specs
 
 def should_ignore_file(
     file_path: str,
@@ -210,61 +239,144 @@ def save_repo_to_text(
         to_stdout: bool = False,
         cli_ignore_patterns: Optional[List[str]] = None
     ) -> str:
-    """Save repository structure and contents to a text file."""
+    """Save repository structure and contents to a text file or multiple files."""
+    # pylint: disable=too-many-locals
     logging.debug('Starting to save repo structure to text for path: %s', path)
-    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
-        path, cli_ignore_patterns
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = (
+        load_ignore_specs(path, cli_ignore_patterns)
     )
+    additional_specs = load_additional_specs(path)
+    maximum_word_count_per_file = additional_specs.get(
+        'maximum_word_count_per_file'
+    )
+
     tree_structure: str = get_tree_structure(
         path, gitignore_spec, tree_and_content_ignore_spec
     )
     logging.debug('Final tree structure to be written: %s', tree_structure)
 
-    output_content = generate_output_content(
+    output_content_segments = generate_output_content(
         path,
         tree_structure,
         gitignore_spec,
         content_ignore_spec,
-        tree_and_content_ignore_spec
+        tree_and_content_ignore_spec,
+        maximum_word_count_per_file
     )
 
     if to_stdout:
-        print(output_content)
-        return output_content
+        for segment in output_content_segments:
+            print(segment, end='') # Avoid double newlines if segments naturally end with one
+        # Return joined content for consistency, though primarily printed
+        return "".join(output_content_segments)
 
-    output_file = write_output_to_file(output_content, output_dir)
-    copy_to_clipboard(output_content)
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-UTC')
+    base_output_name_stem = f'repo-to-text_{timestamp}'
+    
+    output_filepaths: List[str] = []
 
-    print(
-        "[SUCCESS] Repository structure and contents successfully saved to "
-        f"file: \"./{output_file}\""
-    )
+    if not output_content_segments:
+        logging.warning(
+            "generate_output_content returned no segments. No output file will be created."
+        )
+        return "" # Or handle by creating an empty placeholder file
 
-    return output_file
+    if len(output_content_segments) == 1:
+        single_filename = f"{base_output_name_stem}.txt"
+        full_path_single_file = (
+            os.path.join(output_dir, single_filename) if output_dir else single_filename
+        )
+        
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        with open(full_path_single_file, 'w', encoding='utf-8') as f:
+            f.write(output_content_segments[0])
+        output_filepaths.append(full_path_single_file)
+        copy_to_clipboard(output_content_segments[0])
+        print(
+            "[SUCCESS] Repository structure and contents successfully saved to "
+            f"file: \"{os.path.relpath(full_path_single_file)}\""
+        )
+    else: # Multiple segments
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir) # Create output_dir once if needed
+
+        for i, segment_content in enumerate(output_content_segments):
+            part_filename = f"{base_output_name_stem}_part_{i+1}.txt"
+            full_path_part_file = (
+                os.path.join(output_dir, part_filename) if output_dir else part_filename
+            )
+            
+            with open(full_path_part_file, 'w', encoding='utf-8') as f:
+                f.write(segment_content)
+            output_filepaths.append(full_path_part_file)
+        
+        print(
+            f"[SUCCESS] Repository structure and contents successfully saved to "
+            f"{len(output_filepaths)} files:"
+        )
+        for fp in output_filepaths:
+            print(f"  - \"{os.path.relpath(fp)}\"")
+            
+    return os.path.relpath(output_filepaths[0]) if output_filepaths else ""
+
 
 def generate_output_content(
         path: str,
         tree_structure: str,
         gitignore_spec: Optional[PathSpec],
         content_ignore_spec: Optional[PathSpec],
-        tree_and_content_ignore_spec: Optional[PathSpec]
-    ) -> str:
-    """Generate the output content for the repository."""
-    output_content: List[str] = []
+        tree_and_content_ignore_spec: Optional[PathSpec],
+        maximum_word_count_per_file: Optional[int] = None
+    ) -> List[str]:
+    """Generate the output content for the repository, potentially split into segments."""
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-positional-arguments
+    output_segments: List[str] = []
+    current_segment_builder: List[str] = []
+    current_segment_word_count: int = 0
     project_name = os.path.basename(os.path.abspath(path))
+
+    def count_words(text: str) -> int:
+        return len(text.split())
+
+    def _finalize_current_segment():
+        nonlocal current_segment_word_count # Allow modification
+        if current_segment_builder:
+            output_segments.append("".join(current_segment_builder))
+            current_segment_builder.clear()
+            current_segment_word_count = 0
     
-    # Add XML opening tag
-    output_content.append('<repo-to-text>\n')
-    
-    output_content.append(f'Directory: {project_name}\n\n')
-    output_content.append('Directory Structure:\n')
-    output_content.append('<directory_structure>\n.\n')
+    def _add_chunk_to_output(chunk: str):
+        nonlocal current_segment_word_count
+        chunk_wc = count_words(chunk)
+
+        if maximum_word_count_per_file is not None:
+            # If current segment is not empty, and adding this chunk would exceed limit,
+            # finalize the current segment before adding this new chunk.
+            if (current_segment_builder and 
+                current_segment_word_count + chunk_wc > maximum_word_count_per_file):
+                _finalize_current_segment()
+        
+        current_segment_builder.append(chunk)
+        current_segment_word_count += chunk_wc
+        
+        # This logic ensures that if a single chunk itself is larger than the limit,
+        # it forms its own segment. The next call to _add_chunk_to_output
+        # or the final _finalize_current_segment will commit it.
+
+    _add_chunk_to_output('<repo-to-text>\n')
+    _add_chunk_to_output(f'Directory: {project_name}\n\n')
+    _add_chunk_to_output('Directory Structure:\n')
+    _add_chunk_to_output('<directory_structure>\n.\n')
 
     if os.path.exists(os.path.join(path, '.gitignore')):
-        output_content.append('├── .gitignore\n')
+        _add_chunk_to_output('├── .gitignore\n')
 
-    output_content.append(tree_structure + '\n' + '</directory_structure>\n')
-    logging.debug('Tree structure written to output content')
+    _add_chunk_to_output(tree_structure + '\n' + '</directory_structure>\n')
+    logging.debug('Tree structure added to output content segment builder')
 
     for root, _, files in os.walk(path):
         for filename in files:
@@ -280,45 +392,51 @@ def generate_output_content(
             ):
                 continue
 
-            relative_path = relative_path.replace('./', '', 1)
-
+            cleaned_relative_path = relative_path.replace('./', '', 1)
+            
+            _add_chunk_to_output(f'\n<content full_path="{cleaned_relative_path}">\n')
+            
             try:
-                # Try to open as text first
                 with open(file_path, 'r', encoding='utf-8') as f:
                     file_content = f.read()
-                    output_content.append(f'\n<content full_path="{relative_path}">\n')
-                    output_content.append(file_content)
-                    output_content.append('\n</content>\n')
+                _add_chunk_to_output(file_content)
             except UnicodeDecodeError:
-                # Handle binary files with the same content tag format
                 logging.debug('Handling binary file contents: %s', file_path)
-                with open(file_path, 'rb') as f:
-                    binary_content = f.read()
-                    output_content.append(f'\n<content full_path="{relative_path}">\n')
-                    output_content.append(binary_content.decode('latin1'))
-                    output_content.append('\n</content>\n')
+                with open(file_path, 'rb') as f_bin:
+                    binary_content: bytes = f_bin.read()
+                _add_chunk_to_output(binary_content.decode('latin1')) # Add decoded binary
+            
+            _add_chunk_to_output('\n</content>\n')
 
-    # Add XML closing tag
-    output_content.append('\n</repo-to-text>\n')
+    _add_chunk_to_output('\n</repo-to-text>\n')
     
-    logging.debug('Repository contents written to output content')
+    _finalize_current_segment() # Finalize any remaining content in the builder
 
-    return ''.join(output_content)
+    logging.debug(
+        'Repository contents generated into %s segment(s)', len(output_segments)
+    )
+    
+    # Ensure at least one segment is returned, even if it's just the empty repo structure
+    if not output_segments and not current_segment_builder:
+        # This case implies an empty repo and an extremely small word limit that split
+        # even the minimal tags. Or, if all content was filtered out.
+        # Return a minimal valid structure if everything else resulted in empty.
+        # However, the _add_chunk_to_output for repo tags should ensure
+        # current_segment_builder is not empty. And _finalize_current_segment ensures
+        # output_segments gets it. If output_segments is truly empty, it means an error
+        # or unexpected state. For safety, if it's empty, return a list with one empty
+        # string or minimal tags. Given the logic, this path is unlikely.
+        logging.warning(
+            "No output segments were generated. Returning a single empty segment."
+        )
+        return ["<repo-to-text>\n</repo-to-text>\n"]
 
-def write_output_to_file(output_content: str, output_dir: Optional[str]) -> str:
-    """Write the output content to a file."""
-    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S-UTC')
-    output_file = f'repo-to-text_{timestamp}.txt'
 
-    if output_dir:
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        output_file = os.path.join(output_dir, output_file)
+    return output_segments
 
-    with open(output_file, 'w', encoding='utf-8') as file:
-        file.write(output_content)
 
-    return output_file
+# The original write_output_to_file function is no longer needed as its logic
+# is incorporated into save_repo_to_text for handling single/multiple files.
 
 def copy_to_clipboard(output_content: str) -> None:
     """Copy the output content to the clipboard if possible."""
