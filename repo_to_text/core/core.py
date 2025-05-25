@@ -4,7 +4,7 @@ Core functionality for repo-to-text
 
 import os
 import subprocess
-from typing import Tuple, Optional, List, Dict, Any, Set, IO
+from typing import Tuple, Optional, List, Dict, Any, Set
 from datetime import datetime, timezone
 from importlib.machinery import ModuleSpec
 import logging
