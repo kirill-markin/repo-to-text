@@ -427,6 +427,16 @@ def generate_output_content(
                 with open(file_path, 'rb') as f_bin:
                     binary_content: bytes = f_bin.read()
                 _add_chunk_to_output(binary_content.decode('latin1')) # Add decoded binary
+            except FileNotFoundError as e:
+                # Minimal handling for bad symlinks
+                if os.path.islink(file_path) and not os.path.exists(file_path):
+                    try:
+                        target = os.readlink(file_path)
+                    except OSError:
+                        target = ''
+                    _add_chunk_to_output(f"[symlink] -> {target}")
+                else:
+                    raise e
             
             _add_chunk_to_output('\n</content>\n')
 
