@@ -4,6 +4,7 @@ Core functionality for repo-to-text
 
 import os
 import subprocess
+import platform
 from typing import Tuple, Optional, List, Dict, Any, Set
 from datetime import datetime, timezone
 from importlib.machinery import ModuleSpec
@@ -36,12 +37,20 @@ def get_tree_structure(
 
 def run_tree_command(path: str) -> str:
     """Run the tree command and return its output."""
+    if platform.system() == "Windows":
+        cmd = ["cmd", "/c", "tree", "/a", "/f", path]
+    else:
+        cmd = ["tree", "-a", "-f", "--noreport", path]
+    
     result = subprocess.run(
-        ['tree', '-a', '-f', '--noreport', path],
+        cmd,
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding='utf-8',
         check=True
     )
-    return result.stdout.decode('utf-8')
+    return result.stdout
 
 def filter_tree_output(
         tree_output: str,
