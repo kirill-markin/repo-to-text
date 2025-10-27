@@ -368,8 +368,7 @@ def _read_file_content(file_path: str) -> str:
             except OSError:
                 target = ''
             return f"[symlink] -> {target}"
-        else:
-            raise e
+        raise e
 
 
 def generate_output_content(
