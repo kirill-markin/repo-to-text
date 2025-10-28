@@ -352,6 +352,33 @@ def save_repo_to_text(
         return output_filepaths[0]
     return ""
 
+def _read_file_content(file_path: str) -> str:
+    """Read file content, handling binary files and broken symlinks.
+    
+    Args:
+        file_path: Path to the file to read
+        
+    Returns:
+        str: File content or appropriate message for special cases
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        logging.debug('Handling binary file contents: %s', file_path)
+        with open(file_path, 'rb') as f_bin:
+            binary_content: bytes = f_bin.read()
+        return binary_content.decode('latin1')
+    except FileNotFoundError as e:
+        # Minimal handling for bad symlinks
+        if os.path.islink(file_path) and not os.path.exists(file_path):
+            try:
+                target = os.readlink(file_path)
+            except OSError:
+                target = ''
+            return f"[symlink] -> {target}"
+        raise e
+
 
 def generate_output_content(
         path: str,
@@ -426,17 +453,8 @@ def generate_output_content(
             cleaned_relative_path = relative_path.replace('./', '', 1)
             
             _add_chunk_to_output(f'\n<content full_path="{cleaned_relative_path}">\n')
-            
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    file_content = f.read()
-                _add_chunk_to_output(file_content)
-            except UnicodeDecodeError:
-                logging.debug('Handling binary file contents: %s', file_path)
-                with open(file_path, 'rb') as f_bin:
-                    binary_content: bytes = f_bin.read()
-                _add_chunk_to_output(binary_content.decode('latin1')) # Add decoded binary
-            
+            file_content = _read_file_content(file_path)
+            _add_chunk_to_output(file_content)
             _add_chunk_to_output('\n</content>\n')
 
     _add_chunk_to_output('\n</repo-to-text>\n')
