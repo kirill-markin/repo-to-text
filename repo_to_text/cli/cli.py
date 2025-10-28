@@ -74,6 +74,11 @@ def parse_args() -> argparse.Namespace:
         help="List of files or directories to ignore in both tree and content sections. "
         "Supports wildcards (e.g., '*')."
     )
+    parser.add_argument(
+        '--skip-binary',
+        action='store_true',
+        help='Skip binary files in the output.'
+    )
     return parser.parse_args()
 
 def main() -> NoReturn:
@@ -95,7 +100,8 @@ def main() -> NoReturn:
                 path=args.input_dir,
                 output_dir=args.output_dir,
                 to_stdout=args.stdout,
-                cli_ignore_patterns=args.ignore_patterns
+                cli_ignore_patterns=args.ignore_patterns,
+                skip_binary=args.skip_binary
             )
 
         logging.debug('repo-to-text script finished')

@@ -84,7 +84,8 @@ def test_main_normal_execution(mock_save_repo: MagicMock) -> None:
             path='.',
             output_dir=None,
             to_stdout=True,
-            cli_ignore_patterns=None
+            cli_ignore_patterns=None,
+            skip_binary=False
         )
 
 @patch('repo_to_text.cli.cli.create_default_settings_file')

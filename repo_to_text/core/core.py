@@ -261,7 +261,8 @@ def save_repo_to_text(
         path: str = '.',
         output_dir: Optional[str] = None,
         to_stdout: bool = False,
-        cli_ignore_patterns: Optional[List[str]] = None
+        cli_ignore_patterns: Optional[List[str]] = None,
+        skip_binary: bool = False
     ) -> str:
     """Save repository structure and contents to a text file or multiple files."""
     # pylint: disable=too-many-locals
@@ -285,7 +286,8 @@ def save_repo_to_text(
         gitignore_spec,
         content_ignore_spec,
         tree_and_content_ignore_spec,
-        maximum_word_count_per_file
+        maximum_word_count_per_file,
+        skip_binary
     )
 
     if to_stdout:
@@ -352,11 +354,12 @@ def save_repo_to_text(
         return output_filepaths[0]
     return ""
 
-def _read_file_content(file_path: str) -> str:
+def _read_file_content(file_path: str, skip_binary: bool = False) -> str:
     """Read file content, handling binary files and broken symlinks.
     
     Args:
         file_path: Path to the file to read
+        skip_binary: Whether to skip binary files
         
     Returns:
         str: File content or appropriate message for special cases
@@ -365,6 +368,9 @@ def _read_file_content(file_path: str) -> str:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
     except UnicodeDecodeError:
+        if skip_binary:
+            logging.debug('Skipping binary file: %s', file_path)
+            return "binary content skipped"
         logging.debug('Handling binary file contents: %s', file_path)
         with open(file_path, 'rb') as f_bin:
             binary_content: bytes = f_bin.read()
@@ -386,7 +392,8 @@ def generate_output_content(
         gitignore_spec: Optional[PathSpec],
         content_ignore_spec: Optional[PathSpec],
         tree_and_content_ignore_spec: Optional[PathSpec],
-        maximum_word_count_per_file: Optional[int] = None
+        maximum_word_count_per_file: Optional[int] = None,
+        skip_binary: bool = False
     ) -> List[str]:
     """Generate the output content for the repository, potentially split into segments."""
     # pylint: disable=too-many-arguments
@@ -453,7 +460,7 @@ def generate_output_content(
             cleaned_relative_path = relative_path.replace('./', '', 1)
             
             _add_chunk_to_output(f'\n<content full_path="{cleaned_relative_path}">\n')
-            file_content = _read_file_content(file_path)
+            file_content = _read_file_content(file_path, skip_binary)
             _add_chunk_to_output(file_content)
             _add_chunk_to_output('\n</content>\n')
 
