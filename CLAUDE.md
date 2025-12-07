@@ -1,1 +1,1 @@
-.cursor/index.mdc
+.cursor/rules/index.mdc
