@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "repo-to-text"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
     { name = "Kirill Markin", email = "markinkirill@gmail.com" },
 ]
@@ -48,7 +48,6 @@ dev = [
 disable = [
     "C0303",
 ]
-
 
 
 
