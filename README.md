@@ -256,7 +256,7 @@ To install `repo-to-text` locally for development, follow these steps:
 
 ### Requirements
 
-- Python >= 3.6
+- Python >= 3.10
 - Core dependencies:
   - setuptools >= 70.0.0
   - pathspec >= 0.12.1
