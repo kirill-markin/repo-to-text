@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.30.1"]
 build-backend = "hatchling.build"
 
 [project]
@@ -48,5 +48,4 @@ dev = [
 disable = [
     "C0303",
 ]
-
 
