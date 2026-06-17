@@ -259,7 +259,7 @@ To install `repo-to-text` locally for development, follow these steps:
 - Python >= 3.10
 - Core dependencies:
   - setuptools >= 70.0.0
-  - pathspec >= 0.12.1
+  - pathspec >= 1.0.4
   - argparse >= 1.4.0
   - PyYAML >= 6.0.1
 
@@ -273,6 +273,7 @@ For development, additional packages are required:
 - isort
 - build
 - twine
+- pylint
 
 ### Running Tests
 
