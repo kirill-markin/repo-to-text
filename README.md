@@ -21,7 +21,6 @@ Directory: myproject
 Directory Structure:
 <directory_structure>
 .
-├── .gitignore
 ├── README.md
 └── src
     └── main.py
@@ -203,6 +202,8 @@ You can copy this file from the [existing example in the project](https://github
 - **gitignore-import-and-ignore**: Ignore files and directories specified in `.gitignore` for all sections.
 - **ignore-tree-and-content**: Ignore files and directories for the tree and contents sections.
 - **ignore-content**: Ignore files and directories only for the contents sections.
+
+The `.git` folder, `.gitignore`, `.gitkeep`, and the tool's own `repo-to-text_*` output files are always hidden.
 
 Using these settings, you can control which files and directories are included or excluded from the final text file.
 - **maximum_word_count_per_file**: Optional integer. Sets a maximum word count for each output file. If the total content exceeds this limit, the output will be split into multiple files. The split files will be named using the convention `output_filename_part_N.txt`, where `N` is the part number.

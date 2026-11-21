@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN useradd -m -s /bin/bash user
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates tree \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
