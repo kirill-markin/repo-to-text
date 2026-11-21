@@ -1,5 +1,6 @@
 """This module contains utility functions for the repo_to_text package."""
 
+import os
 import shutil
 import logging
 from typing import List
@@ -38,11 +39,14 @@ def is_ignored_path(file_path: str) -> bool:
     Returns:
         bool: True if path should be ignored, False otherwise
     """
-    ignored_dirs: List[str] = ['.git']
+    ignored_files: List[str] = ['.gitignore', '.gitkeep']
     ignored_files_prefix: List[str] = ['repo-to-text_']
-    is_ignored_dir = any(ignored in file_path for ignored in ignored_dirs)
-    is_ignored_file = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
-    result = is_ignored_dir or is_ignored_file
+    path_parts: List[str] = file_path.replace(os.sep, '/').split('/')
+    # `.git` is a folder in a repository and a file in a submodule
+    is_git_path = '.git' in path_parts
+    is_ignored_file = path_parts[-1] in ignored_files
+    is_ignored_prefix = any(file_path.startswith(prefix) for prefix in ignored_files_prefix)
+    result = is_git_path or is_ignored_file or is_ignored_prefix
     if result:
         logging.debug('Path ignored: %s', file_path)
     return result

@@ -129,9 +129,46 @@ def count_words_for_test(text: str) -> int:
 def test_is_ignored_path() -> None:
     """Test the is_ignored_path function."""
     assert is_ignored_path(".git/config") is True
+    assert is_ignored_path("./.git/HEAD") is True
+    assert is_ignored_path("sub/.git") is True
+    assert is_ignored_path(".gitignore") is True
+    assert is_ignored_path("docs/.gitignore") is True
+    assert is_ignored_path("docs/.gitkeep") is True
     assert is_ignored_path("repo-to-text_output.txt") is True
     assert is_ignored_path("src/main.py") is False
     assert is_ignored_path("normal_file.txt") is False
+    assert is_ignored_path(".github/workflows/ci.yml") is False
+    assert is_ignored_path(".gitlab-ci.yml") is False
+    assert is_ignored_path(".gitattributes") is False
+    assert is_ignored_path(".gitmodules") is False
+    assert is_ignored_path("site.github.io/index.html") is False
+
+def test_generate_output_content_shows_git_named_files(temp_dir: str) -> None:
+    """Test that only real git internals are hidden from the contents section."""
+    files = {
+        ".git/config": "git internals",
+        ".gitignore": "ignored-by-git.txt",
+        ".github/workflows/ci.yml": "name: CI",
+        ".gitattributes": "* text=auto",
+        "site.github.io/index.html": "<html></html>",
+    }
+    for file_path, content in files.items():
+        full_path = os.path.join(temp_dir, file_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(temp_dir)
+    output = "".join(generate_output_content(
+        temp_dir, "", gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec,
+        maximum_word_count_per_file=None
+    ))
+
+    assert '<content full_path=".github/workflows/ci.yml">' in output
+    assert '<content full_path=".gitattributes">' in output
+    assert '<content full_path="site.github.io/index.html">' in output
+    assert '<content full_path=".gitignore">' not in output
+    assert '<content full_path=".git/config">' not in output
 
 def test_load_ignore_specs(sample_repo: str) -> None:
     """Test loading ignore specifications from files."""
