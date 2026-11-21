@@ -21,7 +21,6 @@ Directory: myproject
 Directory Structure:
 <directory_structure>
 .
-├── .gitignore
 ├── README.md
 └── src
     └── main.py

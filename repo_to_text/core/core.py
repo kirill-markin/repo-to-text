@@ -3,9 +3,7 @@ Core functionality for repo-to-text
 """
 
 import os
-import subprocess
-import platform
-from typing import Tuple, Optional, List, Dict, Any, Set
+from typing import Tuple, Optional, List, Dict, Any, NamedTuple
 from datetime import datetime, timezone
 from importlib.machinery import ModuleSpec
 import logging
@@ -13,123 +11,93 @@ import yaml # type: ignore
 import pathspec
 from pathspec import PathSpec
 
-from ..utils.utils import check_tree_command, is_ignored_path
+from ..utils.utils import is_ignored_path
+
+class TreeNode(NamedTuple):
+    """One line of the directory tree with the lines nested under it."""
+    label: str
+    children: List['TreeNode']
 
 def get_tree_structure(
         path: str = '.',
         gitignore_spec: Optional[PathSpec] = None,
         tree_and_content_ignore_spec: Optional[PathSpec] = None
     ) -> str:
-    """Generate tree structure of the directory."""
-    if not check_tree_command():
-        return ""
+    """Generate the tree lines below the root `.` line, without a trailing newline.
 
+    Folders without kept entries are hidden, symlinks are shown as
+    `path -> target` and never followed.
+    """
     logging.debug('Generating tree structure for path: %s', path)
-    tree_output = run_tree_command(path)
-    logging.debug('Tree output generated:\n%s', tree_output)
-
-    if not gitignore_spec and not tree_and_content_ignore_spec:
-        logging.debug('No .gitignore or ignore-tree-and-content specification found')
-        return tree_output
-
-    logging.debug('Filtering tree output based on ignore specifications')
-    return filter_tree_output(tree_output, path, gitignore_spec, tree_and_content_ignore_spec)
-
-def run_tree_command(path: str) -> str:
-    """Run the tree command and return its output."""
-    if platform.system() == "Windows":
-        cmd = ["cmd", "/c", "tree", "/a", "/f", path]
-    else:
-        cmd = ["tree", "-a", "-f", "--noreport", path]
-    
-    result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding='utf-8',
-        check=True
+    nodes = _build_tree_nodes(
+        path, '', os.listdir(path), gitignore_spec, tree_and_content_ignore_spec
     )
-    return result.stdout
+    return '\n'.join(_render_tree_lines(nodes, ''))
 
-def filter_tree_output(
-        tree_output: str,
-        path: str,
+def _build_tree_nodes(
+        directory: str,
+        relative_directory: str,
+        names: List[str],
         gitignore_spec: Optional[PathSpec],
         tree_and_content_ignore_spec: Optional[PathSpec]
-    ) -> str:
-    """Filter the tree output based on ignore specifications."""
-    lines: List[str] = tree_output.splitlines()
-    non_empty_dirs: Set[str] = set()
+    ) -> List[TreeNode]:
+    """Build kept tree nodes for the entries of one directory."""
+    nodes: List[TreeNode] = []
+    for name in sorted(names, key=lambda entry: (entry.lower(), entry)):
+        full_path = os.path.join(directory, name)
+        relative_path = f'{relative_directory}/{name}' if relative_directory else name
+        if should_ignore_file(
+            full_path,
+            relative_path,
+            gitignore_spec,
+            None,
+            tree_and_content_ignore_spec
+        ):
+            continue
 
-    filtered_lines = [
-        process_line(line, path, gitignore_spec, tree_and_content_ignore_spec, non_empty_dirs)
-        for line in lines
-    ]
-
-    filtered_tree_output = '\n'.join(filter(None, filtered_lines))
-    logging.debug('Filtered tree structure:\n%s', filtered_tree_output)
-    return filtered_tree_output
-
-def process_line(
-        line: str,
-        path: str,
-        gitignore_spec: Optional[PathSpec],
-        tree_and_content_ignore_spec: Optional[PathSpec],
-        non_empty_dirs: Set[str]
-    ) -> Optional[str]:
-    """Process a single line of the tree output."""
-    full_path = extract_full_path(line, path)
-    if not full_path or full_path == '.':
-        return None
-
-    try:
-        relative_path = os.path.relpath(full_path, path).replace(os.sep, '/')
-    except (ValueError, OSError) as e:
-        # Handle case where relpath fails (e.g., in CI when cwd is unavailable)
-        # Use absolute path conversion as fallback
-        logging.debug('os.path.relpath failed for %s, using fallback: %s', full_path, e)
-        if os.path.isabs(full_path) and os.path.isabs(path):
-            # Both are absolute, try manual relative calculation
+        label = _escape_tree_label(relative_path)
+        if os.path.islink(full_path):
+            target = _escape_tree_label(os.readlink(full_path))
+            nodes.append(TreeNode(f'{label} -> {target}', []))
+        elif os.path.isdir(full_path):
             try:
-                common = os.path.commonpath([full_path, path])
-                relative_path = os.path.relpath(full_path, common).replace(os.sep, '/')
-            except (ValueError, OSError):
-                # Last resort: use just the filename
-                relative_path = os.path.basename(full_path)
+                child_names = os.listdir(full_path)
+            except OSError as err:
+                logging.warning('Cannot open directory %s: %s', full_path, err)
+                nodes.append(TreeNode(f'{label}  [error opening dir]', []))
+                continue
+            children = _build_tree_nodes(
+                full_path,
+                relative_path,
+                child_names,
+                gitignore_spec,
+                tree_and_content_ignore_spec
+            )
+            if children:
+                nodes.append(TreeNode(label, children))
         else:
-            relative_path = os.path.basename(full_path)
+            nodes.append(TreeNode(label, []))
+    return nodes
 
-    if should_ignore_file(
-        full_path,
-        relative_path,
-        gitignore_spec,
-        None,
-        tree_and_content_ignore_spec
-    ):
-        logging.debug('Ignored: %s', relative_path)
-        return None
+def _escape_tree_label(label: str) -> str:
+    """Escape non-printable characters as backslash-octal UTF-8 bytes, like `tree`."""
+    return ''.join(
+        char if char.isprintable() else ''.join(
+            f'\\{byte:03o}' for byte in char.encode('utf-8', 'surrogateescape')
+        )
+        for char in label
+    )
 
-    if not os.path.isdir(full_path):
-        mark_non_empty_dirs(relative_path, non_empty_dirs)
-
-    if not os.path.isdir(full_path) or os.path.dirname(relative_path) in non_empty_dirs:
-        return line.replace('./', '', 1)
-    return None
-
-def extract_full_path(line: str, path: str) -> Optional[str]:
-    """Extract the full path from a line of tree output."""
-    idx = line.find('./')
-    if idx == -1:
-        idx = line.find(path)
-    return line[idx:].strip() if idx != -1 else None
-
-def mark_non_empty_dirs(relative_path: str, non_empty_dirs: Set[str]) -> None:
-    """Mark all parent directories of a file as non-empty."""
-    dir_path = os.path.dirname(relative_path)
-    while dir_path:
-        non_empty_dirs.add(dir_path)
-        dir_path = os.path.dirname(dir_path)
+def _render_tree_lines(nodes: List[TreeNode], prefix: str) -> List[str]:
+    """Render tree nodes as `tree`-style lines with connectors."""
+    lines: List[str] = []
+    for index, node in enumerate(nodes):
+        is_last = index == len(nodes) - 1
+        lines.append(prefix + ('└── ' if is_last else '├── ') + node.label)
+        lines.extend(
+            _render_tree_lines(node.children, prefix + ('    ' if is_last else '│   '))
+        )
+    return lines
 
 def load_ignore_specs(
         path: str = '.',
@@ -436,10 +404,6 @@ def generate_output_content(
     _add_chunk_to_output(f'Directory: {project_name}\n\n')
     _add_chunk_to_output('Directory Structure:\n')
     _add_chunk_to_output('<directory_structure>\n.\n')
-
-    if os.path.exists(os.path.join(path, '.gitignore')):
-        _add_chunk_to_output('├── .gitignore\n')
-
     _add_chunk_to_output(tree_structure + '\n' + '</directory_structure>\n')
     logging.debug('Tree structure added to output content segment builder')
 

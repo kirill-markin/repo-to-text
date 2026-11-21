@@ -28,46 +28,25 @@ def temp_dir() -> Generator[str, None, None]:
     yield temp_path
     shutil.rmtree(temp_path)
 
-# Mock tree outputs
-# Raw output similar to `tree -a -f --noreport`
-MOCK_RAW_TREE_FOR_SAMPLE_REPO = """./
-./.gitignore
-./.repo-to-text-settings.yaml
-./README.md
-./src
-./src/main.py
-./tests
-./tests/test_main.py
-"""
-
-MOCK_RAW_TREE_SPECIAL_CHARS = """./
-./special chars
-./special chars/file with spaces.txt
-"""
-
-MOCK_RAW_TREE_EMPTY_FILTERING = """./
-./src
-./src/main.py
-./tests
-./tests/test_main.py
-"""
-# Note: ./empty_dir is removed, assuming tree or filter_tree_output would handle it.
-# This makes the test focus on the rest of the logic if tree output is as expected.
-
-# Expected output from get_tree_structure (filtered)
-MOCK_GTS_OUTPUT_FOR_SAMPLE_REPO = """.
-├── .gitignore
-├── README.md
+# Mock get_tree_structure outputs (lines below the root `.` line)
+MOCK_GTS_OUTPUT_FOR_SAMPLE_REPO = """├── README.md
 ├── src
-│   └── main.py
+│   └── src/main.py
 └── tests
-    └── test_main.py"""
+    └── tests/test_main.py"""
 
-MOCK_GTS_OUTPUT_FOR_SIMPLE_REPO = """.
-├── file1.txt
+MOCK_GTS_OUTPUT_FOR_SIMPLE_REPO = """├── file1.txt
 ├── file2.txt
 └── subdir
-    └── file3.txt"""
+    └── subdir/file3.txt"""
+
+def write_files(base_path: str, files: dict[str, str]) -> None:
+    """Create files with content, creating parent directories as needed."""
+    for file_path, content in files.items():
+        full_path = os.path.join(base_path, file_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
 
 @pytest.fixture
 def sample_repo(tmp_path: str) -> str:
@@ -214,25 +193,134 @@ def test_should_ignore_file(sample_repo: str) -> None:
         tree_and_content_ignore_spec
     ) is False
 
-@patch('repo_to_text.core.core.run_tree_command', return_value=MOCK_RAW_TREE_FOR_SAMPLE_REPO)
-@patch('repo_to_text.core.core.check_tree_command', return_value=True)
-def test_get_tree_structure(mock_check_tree: MagicMock, mock_run_tree: MagicMock, sample_repo: str) -> None:
-    """Test tree structure generation."""
+def test_get_tree_structure(sample_repo: str) -> None:
+    """Test tree structure generation with .gitignore and settings rules."""
     gitignore_spec, _, tree_and_content_ignore_spec = load_ignore_specs(sample_repo)
-    # The .repo-to-text-settings.yaml in sample_repo ignores itself from tree and content
     tree_output = get_tree_structure(sample_repo, gitignore_spec, tree_and_content_ignore_spec)
 
-    # Basic structure checks
-    assert "src" in tree_output
-    assert "tests" in tree_output
-    assert "main.py" in tree_output
-    assert "test_main.py" in tree_output
-    assert ".git" not in tree_output
-    assert ".repo-to-text-settings.yaml" not in tree_output # Should be filtered by tree_and_content_ignore_spec
+    assert tree_output == MOCK_GTS_OUTPUT_FOR_SAMPLE_REPO
+
+def test_get_tree_structure_nested_folders(tmp_path: str) -> None:
+    """Test top-level folders, subfolders before sibling files, and last-entry connectors."""
+    base_path = str(tmp_path)
+    write_files(base_path, {
+        "acquisition/__init__.py": "",
+        "acquisition/devices/sub/driver.py": "",
+        "acquisition/devices/camera.py": "",
+        "acquisition/zeta.py": "",
+        "analysis/report.py": "",
+        "main.py": "",
+    })
+
+    assert get_tree_structure(base_path, None, None) == """├── acquisition
+│   ├── acquisition/__init__.py
+│   ├── acquisition/devices
+│   │   ├── acquisition/devices/camera.py
+│   │   └── acquisition/devices/sub
+│   │       └── acquisition/devices/sub/driver.py
+│   └── acquisition/zeta.py
+├── analysis
+│   └── analysis/report.py
+└── main.py"""
+
+def test_get_tree_structure_case_insensitive_order(tmp_path: str) -> None:
+    """Test that folders and files are mixed and sorted ignoring case."""
+    base_path = str(tmp_path)
+    write_files(base_path, {
+        "Beta.txt": "",
+        "alpha.txt": "",
+        "Docs/guide.md": "",
+        "cache.txt": "",
+        "Zeta.txt": "",
+    })
+
+    assert get_tree_structure(base_path, None, None) == """├── alpha.txt
+├── Beta.txt
+├── cache.txt
+├── Docs
+│   └── Docs/guide.md
+└── Zeta.txt"""
+
+def test_get_tree_structure_hides_ignored_and_empty(tmp_path: str) -> None:
+    """Test that ignored entries, folders with only ignored files, and empty folders are hidden."""
+    base_path = str(tmp_path)
+    write_files(base_path, {
+        ".gitignore": "*.log\nbuild/\n",
+        "app.py": "",
+        "debug.log": "",
+        "build/out.bin": "",
+        "logs/run.log": "",
+        "src/keep.py": "",
+        "src/skip.txt": "",
+    })
+    os.makedirs(os.path.join(base_path, "empty_dir"))
+    gitignore_spec, _, tree_and_content_ignore_spec = load_ignore_specs(
+        base_path, ["src/skip.txt"]
+    )
+
+    assert get_tree_structure(base_path, gitignore_spec, tree_and_content_ignore_spec) == (
+        """├── app.py
+└── src
+    └── src/keep.py"""
+    )
+
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks are not supported")
+def test_get_tree_structure_symlinks(tmp_path: str) -> None:
+    """Test that symlinks are shown with their target and linked folders are not descended."""
+    base_path = str(tmp_path)
+    write_files(base_path, {"real/file.txt": ""})
+    os.symlink("real/file.txt", os.path.join(base_path, "file_link.txt"))
+    os.symlink("real", os.path.join(base_path, "real_link"))
+
+    assert get_tree_structure(base_path, None, None) == """├── file_link.txt -> real/file.txt
+├── real
+│   └── real/file.txt
+└── real_link -> real"""
+
+def test_get_tree_structure_escapes_non_printable(tmp_path: str) -> None:
+    """Test that a newline in a file name is escaped so the entry stays on one line."""
+    base_path = str(tmp_path)
+    write_files(base_path, {"new\nline.txt": ""})
+
+    assert get_tree_structure(base_path, None, None) == "└── new\\012line.txt"
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0,
+    reason="needs POSIX permissions without root"
+)
+def test_get_tree_structure_unreadable_dir(
+    tmp_path: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test that an unreadable folder is shown with an error marker and logged."""
+    base_path = str(tmp_path)
+    write_files(base_path, {"locked/secret.txt": "", "z.txt": ""})
+    locked_path = os.path.join(base_path, "locked")
+    os.chmod(locked_path, 0)
+    try:
+        tree_output = get_tree_structure(base_path, None, None)
+    finally:
+        os.chmod(locked_path, 0o755)
+
+    assert tree_output == """├── locked  [error opening dir]
+└── z.txt"""
+    assert f"Cannot open directory {locked_path}" in caplog.text
+
+def test_generate_output_content_directory_structure(sample_repo: str) -> None:
+    """Test the full directory structure block for a repository with a .gitignore."""
+    gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(
+        sample_repo
+    )
+    tree_structure = get_tree_structure(sample_repo, gitignore_spec, tree_and_content_ignore_spec)
+    segments = generate_output_content(
+        sample_repo, tree_structure, gitignore_spec, content_ignore_spec,
+        tree_and_content_ignore_spec, None, False
+    )
+
+    expected_block = f"<directory_structure>\n.\n{MOCK_GTS_OUTPUT_FOR_SAMPLE_REPO}\n</directory_structure>\n"
+    assert expected_block in segments[0]
 
 @patch('repo_to_text.core.core.get_tree_structure', return_value=MOCK_GTS_OUTPUT_FOR_SAMPLE_REPO)
-@patch('repo_to_text.core.core.check_tree_command', return_value=True) # In case any internal call still checks
-def test_save_repo_to_text(mock_check_tree: MagicMock, mock_get_tree: MagicMock, sample_repo: str) -> None:
+def test_save_repo_to_text(mock_get_tree: MagicMock, sample_repo: str) -> None:
     """Test the main save_repo_to_text function."""
     # Create output directory
     output_dir = os.path.join(sample_repo, "output")
@@ -298,22 +386,15 @@ def test_load_ignore_specs_without_gitignore(temp_dir: str) -> None:
     assert content_ignore_spec is None
     assert tree_and_content_ignore_spec is not None
 
-@patch('repo_to_text.core.core.run_tree_command', return_value=MOCK_RAW_TREE_SPECIAL_CHARS)
-@patch('repo_to_text.core.core.check_tree_command', return_value=True)
-def test_get_tree_structure_with_special_chars(mock_check_tree: MagicMock, mock_run_tree: MagicMock, temp_dir: str) -> None:
+def test_get_tree_structure_with_special_chars(temp_dir: str) -> None:
     """Test tree structure generation with special characters in paths."""
-    # Create files with special characters
-    special_dir = os.path.join(temp_dir, "special chars") # Matches MOCK_RAW_TREE_SPECIAL_CHARS
-    os.makedirs(special_dir)
-    with open(os.path.join(special_dir, "file with spaces.txt"), "w", encoding='utf-8') as f:
-        f.write("test")
+    write_files(temp_dir, {"special chars/file with spaces.txt": "test"})
 
-    # load_ignore_specs will be called inside; for temp_dir, they will be None or empty.
     gitignore_spec, _, tree_and_content_ignore_spec = load_ignore_specs(temp_dir)
     tree_output = get_tree_structure(temp_dir, gitignore_spec, tree_and_content_ignore_spec)
 
-    assert "special chars" in tree_output
-    assert "file with spaces.txt" in tree_output
+    assert tree_output == """└── special chars
+    └── special chars/file with spaces.txt"""
 
 def test_should_ignore_file_edge_cases(sample_repo: str) -> None:
     """Test edge cases for should_ignore_file function."""
@@ -358,8 +439,7 @@ def test_save_repo_to_text_with_binary_files(temp_dir: str) -> None:
     assert expected_content in output
 
 @patch('repo_to_text.core.core.get_tree_structure', return_value=MOCK_GTS_OUTPUT_FOR_SIMPLE_REPO) # Using simple repo tree for generic content
-@patch('repo_to_text.core.core.check_tree_command', return_value=True)
-def test_save_repo_to_text_custom_output_dir(mock_check_tree: MagicMock, mock_get_tree: MagicMock, temp_dir: str) -> None:
+def test_save_repo_to_text_custom_output_dir(mock_get_tree: MagicMock, temp_dir: str) -> None:
     """Test save_repo_to_text with custom output directory."""
     # Create a simple file structure
     with open(os.path.join(temp_dir, "test.txt"), "w", encoding='utf-8') as f:
@@ -377,50 +457,7 @@ def test_save_repo_to_text_custom_output_dir(mock_check_tree: MagicMock, mock_ge
 
 def test_get_tree_structure_empty_directory(temp_dir: str) -> None:
     """Test tree structure generation for empty directory."""
-    tree_output = get_tree_structure(temp_dir)
-    # Should only contain the directory itself
-    assert tree_output.strip() == "" or tree_output.strip() == temp_dir
-
-@patch('repo_to_text.core.core.run_tree_command', return_value=MOCK_RAW_TREE_EMPTY_FILTERING)
-@patch('repo_to_text.core.core.check_tree_command', return_value=True)
-def test_empty_dirs_filtering(mock_check_tree: MagicMock, mock_run_tree: MagicMock, tmp_path: str) -> None:
-    """Test filtering of empty directories in tree structure generation."""
-    # Create test directory structure with normalized paths
-    base_path = os.path.normpath(tmp_path)
-    src_path = os.path.join(base_path, "src")
-    empty_dir_path = os.path.join(base_path, "empty_dir")
-    tests_path = os.path.join(base_path, "tests")
-
-    os.makedirs(src_path)
-    os.makedirs(empty_dir_path)
-    os.makedirs(tests_path)
-
-    # Create some files
-    with open(os.path.join(src_path, "main.py"), "w", encoding='utf-8') as f:
-        f.write("print('test')")
-    with open(os.path.join(tests_path, "test_main.py"), "w", encoding='utf-8') as f:
-        f.write("def test(): pass")
-
-    # Get tree structure directly using the function
-    tree_output = get_tree_structure(base_path)
-
-    # Print debug information
-    print("\nTree output:")
-    print(tree_output)
-
-    # Basic structure checks for directories with files
-    assert "src" in tree_output
-    assert "tests" in tree_output
-    assert "main.py" in tree_output
-    assert "test_main.py" in tree_output
-
-    # Check that empty directory is not included by checking each line
-    for line in tree_output.splitlines():
-        # Skip the root directory line
-        if base_path in line:
-            continue
-        # Check that no line contains 'empty_dir'
-        assert "empty_dir" not in line, f"Found empty_dir in line: {line}"
+    assert get_tree_structure(temp_dir, None, None) == ""
 
 # Tests for maximum_word_count_per_file functionality
 
@@ -604,7 +641,7 @@ def test_generate_output_content_file_header_content_together(mock_get_tree: Mag
 
     gitignore_spec, content_ignore_spec, tree_and_content_ignore_spec = load_ignore_specs(repo_path)
     # Mock the tree structure for this specific test case
-    mock_tree_for_single_file = ".\n└── single_file.txt"
+    mock_tree_for_single_file = "└── single_file.txt"
     mock_get_tree.return_value = mock_tree_for_single_file # This mock is for any internal calls if any
     
     max_words_sufficient = 35 # Enough for header + this one file block (around 20 words + initial header)

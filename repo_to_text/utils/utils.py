@@ -1,7 +1,6 @@
 """This module contains utility functions for the repo_to_text package."""
 
 import os
-import shutil
 import logging
 from typing import List
 
@@ -13,22 +12,6 @@ def setup_logging(debug: bool = False) -> None:
     """
     logging_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def check_tree_command() -> bool:
-    """Check if the `tree` command is available, and suggest installation if not.
-    
-    Returns:
-        bool: True if tree command is available, False otherwise
-    """
-    if shutil.which('tree') is None:
-        print(
-            "The 'tree' command is not found. "
-            + "Please install it using one of the following commands:"
-        )
-        print("For Debian-based systems (e.g., Ubuntu): sudo apt-get install tree")
-        print("For Red Hat-based systems (e.g., Fedora, CentOS): sudo yum install tree")
-        return False
-    return True
 
 def is_ignored_path(file_path: str) -> bool:
     """Check if a file path should be ignored based on predefined rules.
