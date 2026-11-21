@@ -23,7 +23,7 @@ Directory Structure:
 .
 ├── README.md
 └── src
-    └── main.py
+    └── src/main.py
 </directory_structure>
 
 <content full_path="README.md">

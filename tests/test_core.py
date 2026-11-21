@@ -11,6 +11,7 @@ import yaml # For creating mock settings files easily
 
 from repo_to_text.core.core import (
     get_tree_structure,
+    _escape_tree_label,
     load_ignore_specs,
     should_ignore_file,
     is_ignored_path,
@@ -284,6 +285,50 @@ def test_get_tree_structure_escapes_line_breaking_chars(tmp_path: str) -> None:
 
     assert get_tree_structure(base_path, None, None) == (
         "├── new\\012line.txt\n└── Screenshot 10.00.00\u202fAM.png"
+    )
+
+@pytest.mark.parametrize(("label", "expected"), [
+    ("\t", "\\011"),
+    ("\u2028", "\\342\\200\\250"),
+    ("\u2029", "\\342\\200\\251"),
+    ("\x85", "\\302\\205"),
+    ("\udcff", "\\377"),
+    ("\u00a0", "\u00a0"),
+    ("\u200c", "\u200c"),
+    ("\u200d", "\u200d"),
+    ("\u202f", "\u202f"),
+])
+def test_escape_tree_label(label: str, expected: str) -> None:
+    """Test that only controls, line and paragraph separators, and undecodable bytes are escaped."""
+    assert _escape_tree_label(label) == expected
+
+def test_get_tree_structure_shows_git_named_entries(tmp_path: str) -> None:
+    """Test that only real git internals are hidden from the tree."""
+    base_path = str(tmp_path)
+    write_files(base_path, {
+        ".git/config": "",
+        "sub/.git": "",
+        "sub/c.py": "",
+        ".gitignore": "",
+        "docs/.gitkeep": "",
+        "docs/a.md": "",
+        ".github/workflows/ci.yml": "",
+        ".gitattributes": "",
+        "site.github.io/index.html": "",
+    })
+    gitignore_spec, _, tree_and_content_ignore_spec = load_ignore_specs(base_path)
+
+    assert get_tree_structure(base_path, gitignore_spec, tree_and_content_ignore_spec) == (
+        """├── .gitattributes
+├── .github
+│   └── .github/workflows
+│       └── .github/workflows/ci.yml
+├── docs
+│   └── docs/a.md
+├── site.github.io
+│   └── site.github.io/index.html
+└── sub
+    └── sub/c.py"""
     )
 
 @pytest.mark.skipif(
