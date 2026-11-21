@@ -277,12 +277,14 @@ def test_get_tree_structure_symlinks(tmp_path: str) -> None:
 │   └── real/file.txt
 └── real_link -> real"""
 
-def test_get_tree_structure_escapes_non_printable(tmp_path: str) -> None:
-    """Test that a newline in a file name is escaped so the entry stays on one line."""
+def test_get_tree_structure_escapes_line_breaking_chars(tmp_path: str) -> None:
+    """Test that a newline in a file name is escaped and special spaces are kept."""
     base_path = str(tmp_path)
-    write_files(base_path, {"new\nline.txt": ""})
+    write_files(base_path, {"new\nline.txt": "", "Screenshot 10.00.00\u202fAM.png": ""})
 
-    assert get_tree_structure(base_path, None, None) == "└── new\\012line.txt"
+    assert get_tree_structure(base_path, None, None) == (
+        "├── new\\012line.txt\n└── Screenshot 10.00.00\u202fAM.png"
+    )
 
 @pytest.mark.skipif(
     os.name == "nt" or os.geteuid() == 0,

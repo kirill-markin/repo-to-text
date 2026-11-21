@@ -7,6 +7,7 @@ from typing import Tuple, Optional, List, Dict, Any, NamedTuple
 from datetime import datetime, timezone
 from importlib.machinery import ModuleSpec
 import logging
+import unicodedata
 import yaml # type: ignore
 import pathspec
 from pathspec import PathSpec
@@ -79,10 +80,15 @@ def _build_tree_nodes(
             nodes.append(TreeNode(label, []))
     return nodes
 
+# Controls, line and paragraph separators, and surrogate-escaped undecodable bytes
+_LINE_BREAKING_CATEGORIES = frozenset({'Cc', 'Cs', 'Zl', 'Zp'})
+
 def _escape_tree_label(label: str) -> str:
-    """Escape non-printable characters as backslash-octal UTF-8 bytes, like `tree`."""
+    """Escape characters that can break or corrupt a line as backslash-octal UTF-8 bytes,
+    like `tree`.
+    """
     return ''.join(
-        char if char.isprintable() else ''.join(
+        char if unicodedata.category(char) not in _LINE_BREAKING_CATEGORIES else ''.join(
             f'\\{byte:03o}' for byte in char.encode('utf-8', 'surrogateescape')
         )
         for char in label
